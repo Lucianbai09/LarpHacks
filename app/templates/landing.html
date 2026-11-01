@@ -1,6 +1,6 @@
 {% extends "base.html" %}
 {% from "_forms.html" import badge %}
-{% from "_ui.html" import avatar, brand_mark, embers, icon, logo %}
+{% from "_ui.html" import avatar, embers, icon, logo %}
 
 {% block title %}Cove · Act like you already quit{% endblock %}
 
@@ -64,7 +64,6 @@
       <a class="btn btn-signup" href="{{ url_for('auth.register') }}">Sign up free{{ icon("arrow") }}</a>
     </section>
 
-    <div class="land-foot">{{ brand_mark() }}Cove · made at LarpHacks</div>
     <footer class="site-foot">
       Cove isn't medical care.
       <a class="text-link" href="{{ url_for('main.terms') }}">Terms</a> · <a class="text-link" href="{{ url_for('main.privacy') }}">Privacy</a>

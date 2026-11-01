@@ -1,9 +1,8 @@
 {# An icon from _icons.html. #}
 {% macro icon(name, cls="") %}<svg class="i {{ cls }}" aria-hidden="true"><use href="#i-{{ name }}"></use></svg>{% endmacro %}
 
-{# The Cove wordmark, and its campfire badge on its own. #}
+{# The Cove wordmark. #}
 {% macro logo() %}<img class="logo" src="{{ url_for('static', filename='cove-logo.png') }}" alt="Cove" width="619" height="160">{% endmacro %}
-{% macro brand_mark() %}<img class="brand-mark" src="{{ url_for('static', filename='cove-mark.png') }}" alt="" width="192" height="192">{% endmacro %}
 
 {# Sparks drifting up out of a campfire, or off anything worth celebrating. #}
 {% macro embers() %}<span class="embers" aria-hidden="true">{% for _ in range(8) %}<i class="ember"></i>{% endfor %}</span>{% endmacro %}

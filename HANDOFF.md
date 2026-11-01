@@ -38,7 +38,8 @@ The product is called Cove, while the repo, databases and Render service keep th
 
 - Aimed at Gen Z and younger millennials. Eight communities: Scrolling, Vaping, Gaming, Alcohol, Weed, Betting, Energy drinks and Impulse buying (`CATEGORIES` in `app/models.py`). More must stay easy to add.
 - **Tone:** casual and short. The larp theme shows up in a few chosen places only ("Let's larp" on sign-up, "days in character", "I broke character", the pledge). Don't sprinkle it everywhere.
-- **Logo:** `app/static/cove-logo.png` (wordmark, in the desktop nav, a slim bar on phones and the landing nav) and `cove-mark.png` (the campfire badge, also the favicon).
+- **Logo:** `app/static/cove-logo.png`, recoloured to the site's orange (`--orange`). It's in the desktop nav, a slim bar on phones and the landing nav. `favicon.png` is its campfire badge.
+- **Pressing F5 runs `init_db()`,** so new tables and categories appear locally without running `flask init-db`. New demo posts still need `flask clear-demo` then `flask seed-demo`.
 - Posts go into any number of communities, or into Overall on its own.
 - Real people can sign up and use it alongside walled-off demo data.
 

@@ -105,7 +105,6 @@ small { display: inline-block; margin-left: 6px; padding: 0 8px; border-radius: 
 }
 .brand { display: inline-flex; align-items: center; gap: 10px; font-weight: 900; font-size: 1.375rem; letter-spacing: -.02em; }
 .logo { display: block; width: auto; height: 34px; }
-.brand-mark { display: block; width: 36px; height: 36px; flex: none; }
 /* Phones and tablets get the logo in a slim bar, since the top navigation is desktop only */
 .mobile-bar { display: flex; justify-content: center; padding: 14px 16px 0; }
 .mobile-bar .logo { height: 28px; }
@@ -120,6 +119,8 @@ small { display: inline-block; margin-left: 6px; padding: 0 8px; border-radius: 
   .topnav { gap: 16px; padding: 0 20px; }
   .topnav-link .i { display: none; }
   .topnav-links { gap: 0; }
+  .topnav-link { padding: 0 10px; }
+  .topnav-actions .btn-sm { padding: 0 14px; }
 }
 
 /* Mobile and tablet: bottom tab bar */
@@ -293,7 +294,7 @@ input:focus-visible + .check-ind { outline: 3px solid var(--text); outline-offse
 .pledge-quote { font-size: 1.1875rem; font-weight: 600; line-height: 1.4; }
 
 /* Medals: hexagons that warm from peach to brown as the milestones grow */
-.medal { display: block; width: 56px; height: auto; overflow: visible; }
+.medal { display: block; width: 56px; max-width: 100%; height: auto; overflow: visible; }
 .medal-row { display: flex; justify-content: space-between; gap: 4px; margin-top: 16px; }
 .medal-item { display: flex; flex-direction: column; align-items: center; gap: 6px; flex: 1; min-width: 0; text-align: center; }
 .medal-label { font-size: .8125rem; font-weight: 700; line-height: 1.2; color: var(--text-muted); }
@@ -410,7 +411,7 @@ input:focus-visible + .check-ind { outline: 3px solid var(--text); outline-offse
 /* The last seven days */
 .week { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 4px; margin-top: 16px; }
 .day { display: flex; flex-direction: column; align-items: center; gap: 6px; }
-.day-dot { width: 38px; height: 38px; display: grid; place-items: center; border-radius: 50%; background: var(--track); color: #fff; }
+.day-dot { width: 100%; max-width: 38px; height: auto; aspect-ratio: 1; display: grid; place-items: center; border-radius: 50%; background: var(--track); color: #fff; }
 .day-dot .i { width: 20px; height: 20px; stroke-width: 3; }
 .day.on .day-dot { background: var(--data); }
 .day.slip .day-dot { background: var(--slip); color: var(--brown); }
@@ -455,7 +456,7 @@ input:focus-visible + .check-ind { outline: 3px solid var(--text); outline-offse
 .land-link.solid { background: var(--text); color: var(--surface); }
 .land-flash { max-width: 640px; margin: 16px auto 0; }
 
-.land-hero { position: relative; max-width: 1200px; margin: 0 auto; padding: 88px 0 136px; text-align: center; }
+.land-hero { position: relative; max-width: 1200px; margin: 0 auto; padding: 64px 0 72px; text-align: center; }
 .land-title { position: relative; font-family: var(--display); font-weight: 700; font-size: clamp(2.5rem, 6.2vw, 5rem); line-height: .98; letter-spacing: -.04em; max-width: 11ch; margin: 0 auto; }
 .land-sub { position: relative; max-width: 33rem; margin: 28px auto 0; font-size: 1.1875rem; line-height: 1.55; }
 .land-cta { position: relative; margin-top: 36px; display: flex; flex-direction: column; align-items: center; gap: 16px; }
@@ -473,7 +474,7 @@ input:focus-visible + .check-ind { outline: 3px solid var(--text); outline-offse
 .pix { display: block; width: calc(var(--cols) * var(--u)); height: auto; max-width: none; fill: var(--text); }
 .float-wrap.alt .pix { fill: var(--rust); }
 @media (max-width: 900px) {
-  .land-hero { padding-top: 24px; padding-bottom: 72px; }
+  .land-hero { padding-top: 24px; padding-bottom: 40px; }
   .float-field { position: relative; inset: auto; height: 112px; margin-bottom: 16px; }
   .float-wrap { --u: 3.4px; left: var(--xs); top: var(--ys); }
   .float-wrap.wide-only { display: none; }
@@ -484,9 +485,9 @@ input:focus-visible + .check-ind { outline: 3px solid var(--text); outline-offse
 .how-blurb { max-width: 36rem; margin: 20px auto 0; font-size: 1.1875rem; line-height: 1.6; text-align: center; }
 
 /* Around the campfire: shared posts drift up out of the fire like smoke, drawn by app.js */
-.campfire { margin: 112px auto 0; max-width: 1200px; text-align: center; scroll-margin-top: 24px; }
+.campfire { margin: 64px auto 0; max-width: 1200px; text-align: center; scroll-margin-top: 24px; }
 .campfire-sub { max-width: 30rem; margin: 14px auto 0; font-size: 1.125rem; color: var(--text-muted); }
-.fire-stage { position: relative; max-width: 1100px; margin: 32px auto 0; }
+.fire-stage { position: relative; max-width: 1100px; margin: 8px auto 0; }
 .smoke { display: flex; flex-direction: column; align-items: center; gap: 20px; }
 .fire-stage:not(.lit) .ember-msg:nth-child(n + 4) { display: none; }
 .fire-stage:not(.lit) .ember-msg:nth-child(1) { transform: rotate(-2deg); }
@@ -498,7 +499,7 @@ input:focus-visible + .check-ind { outline: 3px solid var(--text); outline-offse
 .ember-name { font-weight: 800; }
 .ember-meta { color: var(--text-muted); }
 .ember-body { margin-top: 8px; line-height: 1.45; display: -webkit-box; -webkit-line-clamp: 6; -webkit-box-orient: vertical; overflow: hidden; overflow-wrap: anywhere; }
-.fire-logo { position: relative; width: 220px; margin: 16px auto 0; }
+.fire-logo { position: relative; width: 300px; margin: 16px auto 0; }
 .campfire-mark { display: block; width: 100%; height: auto; overflow: visible; }
 .fire-glow { fill: var(--apricot); opacity: .35; }
 .flame { transform-box: fill-box; transform-origin: 50% 100%; }
@@ -506,11 +507,12 @@ input:focus-visible + .check-ind { outline: 3px solid var(--text); outline-offse
 .flame-mid { fill: var(--apricot); }
 .flame-core { fill: var(--peach); }
 .log { fill: var(--brown); stroke: #5A2614; stroke-width: 2; }
-.fire-stage.lit { height: 720px; }
-.fire-stage.lit .smoke { position: absolute; inset: 0 0 230px 0; display: block; }
+.fire-stage.lit { height: 620px; }
+/* Posts start just inside the flame tips, so they look like they rise out of the fire */
+.fire-stage.lit .smoke { position: absolute; inset: 0 0 270px 0; display: block; }
 .fire-stage.lit .ember-msg { position: absolute; left: 50%; bottom: 0; transform: translateX(-50%); }
 .fire-stage.lit .fire-logo { position: absolute; left: 50%; bottom: 0; margin: 0; transform: translateX(-50%); }
-@media (max-width: 700px) { .fire-logo { width: 180px; } .fire-stage.lit { height: 660px; } .fire-stage.lit .smoke { bottom: 190px; } }
+@media (max-width: 700px) { .fire-logo { width: 230px; } .fire-stage.lit { height: 580px; } .fire-stage.lit .smoke { bottom: 205px; } }
 
 /* Sparks that float up out of the fire, and off the tick when you check in */
 .embers { position: absolute; inset: 0; pointer-events: none; }
@@ -525,8 +527,7 @@ input:focus-visible + .check-ind { outline: 3px solid var(--text); outline-offse
 .ember:nth-child(8) { margin-left: 22px; --ex: 28px; --ey: -230px; --d: 4.6s; --dl: -.6s; }
 .done-icon { position: relative; }
 .done-icon .ember { --ey: -90px; }
-.land-close { margin: 72px auto 0; display: flex; flex-direction: column; align-items: center; gap: 24px; text-align: center; }
-.land-foot { display: flex; align-items: center; justify-content: center; gap: 10px; margin-top: 72px; font-weight: 700; color: var(--text-muted); }
+.land-close { margin: 40px auto 0; display: flex; flex-direction: column; align-items: center; gap: 24px; text-align: center; }
 
 /* ---------- Toast ---------- */
 .toast {
@@ -593,6 +594,7 @@ input:focus-visible + .check-ind { outline: 3px solid var(--text); outline-offse
   @media (hover: hover) and (pointer: fine) {
     .medal-item.earned:hover .medal, .badge-item.earned:hover .medal { transform: rotate(-6deg) scale(1.06); }
     .btn-signup:hover .i { transform: translateX(4px); }
+    .float-wrap:hover .pix { transform: rotate(-10deg) scale(1.12); }
   }
 
   /* Landing: the headline arrives, the icons pop in and drift, the cards rise and bob */
@@ -604,7 +606,6 @@ input:focus-visible + .check-ind { outline: 3px solid var(--text); outline-offse
   .float-in { animation: icon-in 700ms var(--ease-out) calc(300ms + var(--k) * 70ms) backwards; }
   .float-in.boop { animation: boop 560ms var(--ease-out); }
   .pix { transition: transform 300ms var(--ease-out); }
-  .float-wrap:hover .pix { transform: rotate(-10deg) scale(1.12); }
   .paused .float-ic { animation-play-state: paused; }
 
   /* The campfire flickers and its posts drift up. Pointing at them doesn't stop them */
@@ -642,3 +643,23 @@ input:focus-visible + .check-ind { outline: 3px solid var(--text); outline-offse
 @keyframes ember { 0% { opacity: 0; transform: translate(0, 0); } 12% { opacity: 1; } 100% { opacity: 0; transform: translate(var(--ex), var(--ey)); } }
 @keyframes flicker { from { transform: scale(1, 1); } to { transform: scale(.94, 1.07) skewX(-2deg); } }
 @keyframes glow { from { opacity: .25; } to { opacity: .45; } }
+
+/* ---------- Small phones and landscape ---------- */
+@media (max-width: 400px) {
+  .segmented > label > span { padding: 4px; font-size: .9375rem; }
+  .stat { padding: 0 10px; }
+  .stat-value { font-size: 1.25rem; }
+  .chart { gap: 4px; }
+  .chart-label { font-size: .75rem; }
+  .post .person-row > .pill { padding: 0 8px; font-size: .8125rem; }
+  .medal-row { gap: 2px; }
+}
+@media (max-width: 359px) {
+  .tab { font-size: .75rem; }
+  .tab-ic { width: 48px; }
+  .land-link:not(.solid) { display: none; }
+}
+/* iPhones on their side: keep content out from under the notch */
+@media (orientation: landscape) and (max-width: 1023px) {
+  .main, .landing, .onb { padding-left: max(24px, env(safe-area-inset-left)); padding-right: max(24px, env(safe-area-inset-right)); }
+}

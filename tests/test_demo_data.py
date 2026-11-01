@@ -187,9 +187,26 @@ def test_logged_out_visitors_only_see_public_demo_posts(seeded, visitor):
     assert "Stood in the store" not in html and "every evening around six" not in html
 
 
-def test_every_community_has_demo_posts(seeded, visitor):
+def test_every_community_has_people_and_posts(seeded, visitor):
     for slug, *_ in CATEGORIES:
-        assert "<article" in visitor().text(f"/categories/{slug}"), slug
+        assert visitor().text(f"/categories/{slug}").count("<article") >= 3, slug
+        assert sum(slug in communities for communities in USERS.values()) >= 2, slug
+
+
+def test_the_start_command_builds_a_new_database_and_keeps_real_accounts(app, make_user, count):
+    with app.app_context():
+        db.drop_all()
+    run_it = app.test_cli_runner().invoke
+    result = run_it(args=["reset-demo"])
+    assert result.exit_code == 0, result.output
+    assert count(User) == len(USERS) and count(Post) == len(POSTS)
+
+    alice = make_user("alice")
+    alice.write("real-post")
+    result = run_it(args=["reset-demo"])
+    assert result.exit_code == 0, result.output
+    assert count(User) == len(USERS) + 1 and count(Post) == len(POSTS) + 1
+    assert alice.logged_in()
 
 
 def test_demo_requests_are_waiting_to_be_accepted_on_stage(seeded, visitor):
@@ -201,6 +218,8 @@ def test_demo_requests_are_waiting_to_be_accepted_on_stage(seeded, visitor):
 
 def test_the_seed_list_is_consistent():
     assert all(item["author"] in USERS for item in POSTS)
+    # Everyone only posts in communities they're in, and not from before they joined.
+    assert all(item["days_ago"] <= USERS[item["author"]][slug] for item in POSTS for slug in item["communities"])
     assert all(item["report_type"] in REPORT_TYPES and item["visibility"] in VISIBILITIES for item in POSTS)
     assert all(name in USERS for item in POSTS for name in item["believers"])
     assert all(name in USERS for item in POSTS for name, _ in item["comments"])

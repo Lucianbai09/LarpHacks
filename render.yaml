@@ -4,9 +4,11 @@ services:
     runtime: python
     plan: free
     buildCommand: pip install -r requirements.txt
-    # Free instances have no shell, so the database is set up on every start. Demo data is re-seeded each time,
-    # because its days are relative to when it was seeded. This also drops real comments on demo posts.
-    startCommand: flask init-db && flask clear-demo && flask seed-demo && gunicorn run:app
+    # Free instances have no shell, so the database is set up on every start, including waking from sleep. Demo data
+    # is re-seeded each time, because its days are relative to when it was seeded. This also drops real comments on
+    # demo posts. It's one command because each one restarts Python, which is slow on a free instance. The longer
+    # timeout is for the same reason: gunicorn's default of 30 seconds could kill a worker that's still loading.
+    startCommand: flask reset-demo && gunicorn run:app --timeout 120
     envVars:
       # "Today" for check-ins and day counts. Render's clock is UTC, which rolls over mid-evening in North America.
       - key: TZ

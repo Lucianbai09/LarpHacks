@@ -11,7 +11,7 @@ from urllib.parse import parse_qs, urlparse
 import pytest
 from PIL import Image
 
-from app import create_app, limiter
+from app import client_ip, create_app, limiter
 from app.mail import deliver, page_text
 from app.models import Comment, Post, User
 from helpers import PASSWORD
@@ -450,6 +450,14 @@ def test_render_settings(monkeypatch, visitor):
     assert app.debug is False
     assert app.config["SESSION_COOKIE_SECURE"] is True and app.config["REMEMBER_COOKIE_SECURE"] is True
     assert app.config["APP_URL"] == "https://larphacks.onrender.com"
+
+
+def test_only_render_trusts_cloudflares_address_header(app, monkeypatch):
+    with app.test_request_context(headers={"CF-Connecting-IP": "203.0.113.9"}, environ_base={"REMOTE_ADDR": "10.0.0.1"}):
+        monkeypatch.delenv("RENDER", raising=False)
+        assert client_ip() == "10.0.0.1", "anywhere else, a visitor could set this header themselves"
+        monkeypatch.setenv("RENDER", "true")
+        assert client_ip() == "203.0.113.9"
 
 
 @pytest.mark.parametrize("given", ["postgres://u:p@h/db", "postgresql://u:p@h/db", "postgresql+psycopg://u:p@h/db"])

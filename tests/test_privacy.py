@@ -112,7 +112,7 @@ def test_setup_steps_join_communities_and_save_the_pledge_and_audience(make_user
     assert alice.post("/setup/1", {}, token_from="/setup/1").status_code == 400
     assert alice.post("/setup/1", {"habit": ["alcohol", "nope"]}, token_from="/setup/1").status_code == 400
     assert alice.post("/setup/1", {"habit": ["alcohol", "gaming"]}, token_from="/setup/1").headers["Location"] == "/setup/2"
-    assert "I&#39;m someone who doesn&#39;t need a drink or game on autopilot." in alice.text("/setup/2")
+    assert "I&#39;m someone who doesn&#39;t game on autopilot or need a drink." in alice.text("/setup/2")
 
     assert alice.post("/setup/2", {"pledge": "x" * 201, "shared": "on"}, token_from="/setup/2").status_code == 400
     assert alice.post("/setup/2", {"pledge": "I go to bed early now.", "shared": "on"}, token_from="/setup/2").headers["Location"] == "/setup/3"
@@ -308,7 +308,8 @@ def test_a_shared_check_in_only_names_and_goes_into_what_you_ticked(make_user, v
 
     alice.post("/check-in", {**CHECK_IN, "mood": "3", "visibility": "public"})
     assert "Feeling 8/10" not in visitor().text("/categories/gaming")
-    assert "Feeling 3/10. Didn&#39;t stay in character today" in visitor().text("/"), "nothing ticked goes in Overall"
+    # Logged in, because the logged-out landing page leaves check-ins out.
+    assert "Feeling 3/10. Didn&#39;t stay in character today" in make_user("bobby").text("/"), "nothing ticked goes in Overall"
 
 
 # ---- Communities and counts

@@ -50,6 +50,6 @@ jobs:
         env:
           RENDER: "true"
         run: |
-          flask init-db && flask seed-demo
-          gunicorn run:app --bind 127.0.0.1:8000 --daemon
+          flask reset-demo
+          gunicorn run:app --bind 127.0.0.1:8000 --timeout 120 --daemon
           curl --silent --show-error --fail --retry 15 --retry-connrefused --retry-delay 1 http://127.0.0.1:8000/ > /dev/null

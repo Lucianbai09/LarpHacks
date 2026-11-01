@@ -15,10 +15,18 @@ db = SQLAlchemy()
 login_manager = LoginManager()
 login_manager.login_view = "auth.login"
 csrf = CSRFProtect()
+
+
+def client_ip():
+    # Render's traffic comes through Cloudflare, which overwrites this header, so visitors can't fake it.
+    # Without it, everyone looks like the same proxy and shares one rate limit.
+    return ("RENDER" in os.environ and request.headers.get("CF-Connecting-IP")) or get_remote_address()
+
+
 # Anything that changes data is limited by default, including routes added later.
 # Memory is fine for one server. Point storage_uri at Redis to run more than one.
 limiter = Limiter(
-    key_func=get_remote_address,
+    key_func=client_ip,
     storage_uri="memory://",
     default_limits=["60 per minute"],
     default_limits_exempt_when=lambda: request.method in ("GET", "HEAD", "OPTIONS"),
@@ -80,5 +88,12 @@ def create_app(config=None):
     def clear_demo():
         """Delete demo accounts and everything attached to them. Real accounts stay."""
         demo.clear()
+
+    @app.cli.command("reset-demo")
+    def reset_demo():
+        """Create missing tables, then replace the demo data with a fresh copy. Real accounts stay."""
+        models.init_db()
+        demo.clear()
+        demo.seed()
 
     return app

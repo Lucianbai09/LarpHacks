@@ -4,6 +4,8 @@ import urllib.request
 
 from flask import current_app, request
 
+from . import client_ip
+
 TURNSTILE_VERIFY_URL = "https://challenges.cloudflare.com/turnstile/v0/siteverify"
 
 # Only our own files and Cloudflare's captcha can run, so injected HTML can't execute scripts.
@@ -35,7 +37,7 @@ def captcha_passed():
         {
             "secret": secret,
             "response": request.form.get("cf-turnstile-response", ""),
-            "remoteip": request.remote_addr,
+            "remoteip": client_ip(),
         }
     ).encode()
     try:

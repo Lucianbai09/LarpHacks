@@ -1,0 +1,62 @@
+{% extends "base.html" %}
+{% from "_forms.html" import post_button %}
+
+{% block title %}{{ user.username }} · LarpHacks{% endblock %}
+
+{% block content %}
+  <h1>{{ user.username }}</h1>
+  <p>Larping since {{ user.created_at.strftime("%b %d, %Y") }}</p>
+
+  {% if is_me %}
+    <p><a href="{{ url_for('main.circle') }}">Manage your circle</a></p>
+  {% elif current_user.is_authenticated %}
+    <p>
+      {% if not link %}
+        {{ post_button(url_for('main.circle_add'), 'Add to circle', username=user.username) }}
+      {% elif link.accepted %}
+        In your circle.
+        {{ post_button(url_for('main.circle_remove'), 'Remove from circle', username=user.username) }}
+      {% elif link.addressee_id == current_user.id %}
+        Wants to join your circle.
+        {{ post_button(url_for('main.circle_add'), 'Accept', username=user.username) }}
+        {{ post_button(url_for('main.circle_remove'), 'Decline', username=user.username) }}
+      {% else %}
+        Circle request sent.
+        {{ post_button(url_for('main.circle_remove'), 'Cancel', username=user.username) }}
+      {% endif %}
+    </p>
+  {% endif %}
+
+  {% if memberships %}
+    <h2>Communities</h2>
+    <ul>
+      {% for membership in memberships %}
+        <li>
+          <a href="{{ url_for('main.category_feed', slug=membership.category.slug) }}">{{ membership.category.name }}</a>
+          · {{ membership.days_label }}
+        </li>
+      {% endfor %}
+    </ul>
+  {% elif is_me %}
+    <h2>Communities</h2>
+    <p>None yet. <a href="{{ url_for('main.category_list') }}">Join what you're quitting.</a></p>
+  {% endif %}
+
+  <h2>Entries</h2>
+  {% include "_feed.html" %}
+
+  {% if is_me %}
+    <h2>Comments you left</h2>
+    {% for comment in comments %}
+      <p>
+        <a href="{{ url_for('main.post_detail', post_id=comment.post_id) }}">On {{ comment.post.author.username }}'s post</a>:
+        <span class="post-body">{{ comment.body }}</span>
+      </p>
+    {% else %}
+      <p>None yet.</p>
+    {% endfor %}
+
+    <h2>Posts you believed</h2>
+    {% with posts=believed %}{% include "_feed.html" %}{% endwith %}
+  {% endif %}
+{% endblock %}

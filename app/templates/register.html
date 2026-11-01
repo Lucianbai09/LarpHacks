@@ -1,0 +1,22 @@
+{% extends "base.html" %}
+
+{% block title %}Register · LarpHacks{% endblock %}
+
+{% block content %}
+  <h1>Register</h1>
+  <p>No email or real name needed. There's no password reset yet, so keep your password somewhere safe.</p>
+  {% if error %}<p class="error">{{ error }}</p>{% endif %}
+  <form method="post">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+    <label>
+      Username
+      <input name="username" value="{{ username }}" autocomplete="username" required autofocus>
+    </label>
+    <label>
+      Password
+      <input type="password" name="password" minlength="{{ min_password_length }}" autocomplete="new-password" required>
+    </label>
+    <button>Start larping</button>
+  </form>
+  <p>Already in character? <a href="{{ url_for('auth.login') }}">Log in</a></p>
+{% endblock %}

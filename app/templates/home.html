@@ -1,0 +1,15 @@
+{% extends "base.html" %}
+
+{% block content %}
+  <h1>LarpHacks</h1>
+  <p>Larp as someone who already quit, until it's true.</p>
+
+  <p>
+    {% for category in categories %}
+      <a href="{{ url_for('main.category_feed', slug=category.slug) }}">{{ category.name }}</a>{% if not loop.last %} · {% endif %}
+    {% endfor %}
+  </p>
+
+  <h2>Everything</h2>
+  {% include "_feed.html" %}
+{% endblock %}

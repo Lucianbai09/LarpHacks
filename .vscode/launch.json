@@ -1,0 +1,22 @@
+{
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "name": "Run LarpHacks",
+      "type": "debugpy",
+      "request": "launch",
+      "program": "${workspaceFolder}/run.py",
+      "cwd": "${workspaceFolder}",
+      "console": "internalConsole",
+      "jinja": true,
+      "windows": { "python": "${workspaceFolder}/.venv/Scripts/python.exe" },
+      "osx": { "python": "${workspaceFolder}/.venv/bin/python" },
+      "linux": { "python": "${workspaceFolder}/.venv/bin/python" },
+      "serverReadyAction": {
+        "pattern": "Running on (https?://\\S+)",
+        "uriFormat": "%s",
+        "action": "openExternally"
+      }
+    }
+  ]
+}

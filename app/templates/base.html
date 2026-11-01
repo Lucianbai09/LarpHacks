@@ -1,0 +1,31 @@
+{% from "_forms.html" import post_button %}
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{% block title %}LarpHacks{% endblock %}</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+  <nav>
+    <a href="{{ url_for('main.home') }}">Home</a>
+    <a href="{{ url_for('main.category_list') }}">Communities</a>
+    <a href="{{ url_for('main.write') }}">Write</a>
+    {% if current_user.is_authenticated %}
+      <a href="{{ url_for('main.circle') }}">Circle{% if circle_requests %} ({{ circle_requests }}){% endif %}</a>
+      <a href="{{ url_for('main.profile', username=current_user.username) }}">{{ current_user.username }}</a>
+      {{ post_button(url_for('auth.logout'), 'Log out') }}
+    {% else %}
+      <a href="{{ url_for('auth.login') }}">Log in</a>
+      <a href="{{ url_for('auth.register') }}">Register</a>
+    {% endif %}
+  </nav>
+  {% for message in get_flashed_messages() %}
+    <p class="flash">{{ message }}</p>
+  {% endfor %}
+  <main>
+    {% block content %}{% endblock %}
+  </main>
+</body>
+</html>

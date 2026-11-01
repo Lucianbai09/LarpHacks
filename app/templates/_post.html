@@ -1,0 +1,20 @@
+{% from "_forms.html" import post_button %}
+<article id="post-{{ post.id }}">
+  <p>
+    <a href="{{ url_for('main.profile', username=post.author.username) }}"><strong>{{ post.author.username }}</strong></a>
+    · {{ post.report_label }}
+    · {% if post.category %}<a href="{{ url_for('main.category_feed', slug=post.category.slug) }}">{{ post.category.name }}</a>{% else %}Overall{% endif %}
+    · {{ post.visibility_label }}
+    · {{ post.created_at.strftime("%b %d, %Y") }}
+  </p>
+  <p class="post-body">{{ post.body }}</p>
+  <div>
+    {% set believers = post.reactions|length %}
+    {% if current_user.is_authenticated %}
+      {{ post_button(url_for('main.believe', post_id=post.id), ('You believe this' if post.believed_by(current_user) else 'I believe you') ~ ' (' ~ believers ~ ')') }}
+    {% else %}
+      <a href="{{ url_for('auth.login', next=request.path) }}">I believe you ({{ believers }})</a>
+    {% endif %}
+    · <a href="{{ url_for('main.post_detail', post_id=post.id) }}">{{ post.comments|length }} comment{{ '' if post.comments|length == 1 else 's' }}</a>
+  </div>
+</article>

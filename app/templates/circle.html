@@ -1,0 +1,58 @@
+{% extends "base.html" %}
+{% from "_forms.html" import post_button %}
+
+{% block title %}Circle · LarpHacks{% endblock %}
+
+{% block content %}
+  <h1>Your circle</h1>
+  <p>People here read what you post to "My circle", and you read theirs.</p>
+
+  <form method="post" action="{{ url_for('main.circle_add') }}">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+    <label>
+      Add someone by username
+      <input name="username" required>
+    </label>
+    <button>Send request</button>
+  </form>
+
+  {% if incoming %}
+    <h2>Requests</h2>
+    <ul>
+      {% for person in incoming %}
+        <li>
+          <a href="{{ url_for('main.profile', username=person.username) }}">{{ person.username }}</a>
+          {{ post_button(url_for('main.circle_add'), 'Accept', username=person.username) }}
+          {{ post_button(url_for('main.circle_remove'), 'Decline', username=person.username) }}
+        </li>
+      {% endfor %}
+    </ul>
+  {% endif %}
+
+  {% if outgoing %}
+    <h2>Sent</h2>
+    <ul>
+      {% for person in outgoing %}
+        <li>
+          <a href="{{ url_for('main.profile', username=person.username) }}">{{ person.username }}</a>
+          {{ post_button(url_for('main.circle_remove'), 'Cancel', username=person.username) }}
+        </li>
+      {% endfor %}
+    </ul>
+  {% endif %}
+
+  <h2>Members</h2>
+  <ul>
+    {% for person in members %}
+      <li>
+        <a href="{{ url_for('main.profile', username=person.username) }}">{{ person.username }}</a>
+        {{ post_button(url_for('main.circle_remove'), 'Remove', username=person.username) }}
+      </li>
+    {% else %}
+      <li>No one yet.</li>
+    {% endfor %}
+  </ul>
+
+  <h2>From your circle</h2>
+  {% include "_feed.html" %}
+{% endblock %}

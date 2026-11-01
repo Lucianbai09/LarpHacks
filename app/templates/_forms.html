@@ -1,0 +1,11 @@
+{# A one-click POST form that returns to the current page. Extra keyword arguments become hidden fields. #}
+{% macro post_button(url, label, confirm=none) %}
+  <form method="post" action="{{ url }}" class="inline"{% if confirm %} onsubmit="return confirm('{{ confirm }}')"{% endif %}>
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+    <input type="hidden" name="next" value="{{ request.path }}">
+    {% for name, value in kwargs.items() %}
+      <input type="hidden" name="{{ name }}" value="{{ value }}">
+    {% endfor %}
+    <button>{{ label }}</button>
+  </form>
+{% endmacro %}

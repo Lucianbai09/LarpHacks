@@ -1,0 +1,21 @@
+{% extends "base.html" %}
+{% from "_forms.html" import post_button %}
+
+{% block title %}{{ category.name }} · LarpHacks{% endblock %}
+
+{% block content %}
+  <h1>{{ category.name }}</h1>
+
+  {% if membership %}
+    <p><strong>{{ membership.days_label }}</strong></p>
+    <p>
+      {{ post_button(url_for('main.restart', slug=category.slug), 'I broke character', confirm='Restart your count at day 0?') }}
+      {{ post_button(url_for('main.leave', slug=category.slug), 'Leave', confirm='Leave and lose your count?') }}
+    </p>
+  {% elif current_user.is_authenticated %}
+    <p>{{ post_button(url_for('main.join', slug=category.slug), 'Join and start my count') }}</p>
+  {% endif %}
+
+  <p><a href="{{ url_for('main.write', category=category.slug) }}">Write in {{ category.name }}</a></p>
+  {% include "_feed.html" %}
+{% endblock %}

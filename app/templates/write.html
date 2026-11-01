@@ -1,0 +1,40 @@
+{% extends "base.html" %}
+
+{% block title %}Write · LarpHacks{% endblock %}
+
+{% block content %}
+  <h1>Write</h1>
+  {% if error %}<p class="error">{{ error }}</p>{% endif %}
+  <form method="post">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+    <label>
+      Category
+      <select name="category">
+        <option value="">Overall</option>
+        {% for category in categories %}
+          <option value="{{ category.slug }}" {% if form.get("category") == category.slug %}selected{% endif %}>{{ category.name }}</option>
+        {% endfor %}
+      </select>
+    </label>
+    <label>
+      Type
+      <select name="report_type">
+        {% for value, label in report_types.items() %}
+          <option value="{{ value }}" {% if form.get("report_type", "post") == value %}selected{% endif %}>{{ label }}</option>
+        {% endfor %}
+      </select>
+    </label>
+    <label>
+      How's it going?
+      <textarea name="body" rows="8" required>{{ form.get("body", "") }}</textarea>
+    </label>
+    <fieldset>
+      <legend>Who can see this?</legend>
+      {% for value, label in visibilities.items() %}
+        <label><input type="radio" name="visibility" value="{{ value }}" {% if form.get("visibility", "circle") == value %}checked{% endif %}> {{ label }}</label>
+      {% endfor %}
+      <small>Community posts are public, so anyone can read them without an account.</small>
+    </fieldset>
+    <button>Post</button>
+  </form>
+{% endblock %}

@@ -1,21 +1,24 @@
 {% extends "base.html" %}
-{% from "_forms.html" import post_button %}
+{% from "_ui.html" import icon %}
 
-{% block title %}Communities · LarpHacks{% endblock %}
+{% block title %}Communities · Cove{% endblock %}
+{% block main_class %}wide{% endblock %}
 
 {% block content %}
-  <h1>Communities</h1>
-  <p>Join what you're quitting. Joining starts your days-in-character count.</p>
-  <ul>
-    {% for category in categories %}
-      <li>
-        <a href="{{ url_for('main.category_feed', slug=category.slug) }}">{{ category.name }}</a>
-        {% if category.id in memberships %}
-          · {{ memberships[category.id].days_label }}
-        {% elif current_user.is_authenticated %}
-          {{ post_button(url_for('main.join', slug=category.slug), 'Join') }}
-        {% endif %}
-      </li>
-    {% endfor %}
-  </ul>
+  <div class="page-head">
+    <div>
+      <h1>Community</h1>
+      <p class="muted">Join what you're quitting. Joining starts your days-in-character count.</p>
+    </div>
+  </div>
+  <div class="community-layout">
+    <div class="col">
+      {% include "_communities.html" %}
+      <a class="btn btn-primary btn-block share-btn" href="{{ url_for('main.write') }}">{{ icon("pen") }}Share how it's going</a>
+    </div>
+    <div class="col">
+      <div class="section-head"><h2 class="section-title">Stories</h2></div>
+      {% include "_feed.html" %}
+    </div>
+  </div>
 {% endblock %}

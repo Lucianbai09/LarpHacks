@@ -40,8 +40,8 @@ def create_app(config=None):
     app.config["REMEMBER_COOKIE_DURATION"] = timedelta(days=30)
     # Tokens last as long as the session, so a page left open keeps working.
     app.config["WTF_CSRF_TIME_LIMIT"] = None
-    # There are no file uploads, so no honest request is anywhere near this size.
-    app.config["MAX_CONTENT_LENGTH"] = 1024 * 1024
+    # Room for one 10 MB photo and its form. Flask separately caps the text in a form at 500 KB.
+    app.config["MAX_CONTENT_LENGTH"] = 11 * 1024 * 1024
     app.config["EMAIL_WEBHOOK_URL"] = os.environ.get("EMAIL_WEBHOOK_URL")
     app.config["TURNSTILE_SITE_KEY"] = os.environ.get("TURNSTILE_SITE_KEY")
     app.config["TURNSTILE_SECRET_KEY"] = os.environ.get("TURNSTILE_SECRET_KEY")

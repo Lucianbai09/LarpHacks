@@ -4,33 +4,25 @@ import urllib.request
 
 from flask import current_app, request
 
-MIN_PASSWORD_LENGTH = 6
-
-# The passwords attackers try first. Anything else only has to be long enough.
-COMMON_PASSWORDS = {
-    "000000", "111111", "123123", "123456", "1234567", "12345678", "123456789", "1234567890",
-    "1q2w3e4r", "654321", "abc123", "abcdef", "admin123", "asdfgh", "baseball", "dragon",
-    "football", "iloveyou", "larphacks", "letmein", "monkey", "passw0rd", "password", "password1",
-    "password123", "princess", "qwerty", "qwerty123", "qwertyuiop", "sunshine", "trustno1", "welcome",
-}  # fmt: skip
-
 TURNSTILE_VERIFY_URL = "https://challenges.cloudflare.com/turnstile/v0/siteverify"
 
 # Only our own files and Cloudflare's captcha can run, so injected HTML can't execute scripts.
+# Styles and fonts also come from Google Fonts. Inline style="" attributes are blocked, so use classes.
 CONTENT_SECURITY_POLICY = (
     "default-src 'self'; "
     "script-src 'self' https://challenges.cloudflare.com; "
+    "style-src 'self' https://fonts.googleapis.com; "
+    "font-src https://fonts.gstatic.com; "
+    # blob: is the preview of a photo you've picked but not posted yet.
+    "img-src 'self' blob:; "
     "frame-src https://challenges.cloudflare.com; "
     "object-src 'none'; base-uri 'none'; form-action 'self'; frame-ancestors 'none'"
 )
 
 
 def password_problem(password):
-    if len(password) < MIN_PASSWORD_LENGTH:
-        return f"Passwords need at least {MIN_PASSWORD_LENGTH} characters."
-    if password.lower() in COMMON_PASSWORDS:
-        return "That password is too common, so it's the first one a bot would try."
-    return None
+    # There are no password rules on purpose, because this is a demo. A blank one just isn't a password.
+    return None if password else "Please enter a password."
 
 
 def captcha_passed():

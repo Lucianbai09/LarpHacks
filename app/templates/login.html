@@ -1,22 +1,23 @@
 {% extends "base.html" %}
+{% from "_forms.html" import password_field %}
+{% from "_ui.html" import icon %}
 
-{% block title %}Log in · LarpHacks{% endblock %}
+{% block title %}Log in · Cove{% endblock %}
 
 {% block content %}
-  <h1>Log in</h1>
-  {% if error %}<p class="error">{{ error }}</p>{% endif %}
-  <form method="post">
-    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-    <label>
-      Username or email
-      <input name="identifier" value="{{ identifier }}" autocomplete="username" required autofocus>
-    </label>
-    <label>
-      Password
-      <input type="password" name="password" autocomplete="current-password" required>
-    </label>
-    <button>Log in</button>
-  </form>
-  <p><a href="{{ url_for('auth.forgot_password') }}">Forgot your password?</a></p>
-  <p>New here? <a href="{{ url_for('auth.register') }}">Register</a></p>
+  <section class="card auth-card">
+    <h1>Log in</h1>
+    {% if error %}<p class="form-msg mt-16" role="alert">{{ icon("alert") }}<span>{{ error }}</span></p>{% endif %}
+    <form method="post" class="stack mt-20">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      <div>
+        <label class="field-label" for="identifier">Username or email</label>
+        <input class="input" id="identifier" name="identifier" value="{{ identifier }}" autocomplete="username" required autofocus>
+      </div>
+      {{ password_field("Password", "current-password") }}
+      <button class="btn btn-primary btn-block">Log in</button>
+    </form>
+    <p class="muted small center mt-16"><a class="text-link" href="{{ url_for('auth.forgot_password') }}">Forgot your password?</a></p>
+    <p class="muted small center mt-8">New here? <a class="text-link" href="{{ url_for('auth.register') }}">Sign up</a></p>
+  </section>
 {% endblock %}

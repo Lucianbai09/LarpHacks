@@ -3,7 +3,7 @@ import threading
 import pytest
 
 from app import auth
-from app.models import TERMS_VERSION, CircleLink, Comment, Membership, Post, Reaction, User
+from app.models import TERMS_VERSION, CheckIn, CircleLink, Comment, Membership, Post, Reaction, User
 from helpers import PASSWORD
 
 
@@ -19,9 +19,6 @@ from helpers import PASSWORD
         ("goodname", "a b@mail.test", PASSWORD, True),
         ("goodname", "a" * 250 + "@mail.test", PASSWORD, True),
         ("goodname", "a@mail.test", "", True),
-        ("goodname", "a@mail.test", "abcde", True),
-        ("goodname", "a@mail.test", "password", True),
-        ("goodname", "a@mail.test", "QWERTY", True),
         ("goodname", "a@mail.test", PASSWORD, False),
     ],
 )
@@ -123,11 +120,11 @@ def test_changing_password_logs_out_other_devices(make_user, visitor):
     assert visitor().login("author", "changed1").status_code == 302
 
 
-def test_password_rules_stay_basic(make_user):
+def test_any_password_works_except_a_blank_one(make_user, visitor):
     browser = make_user("author")
-    assert "at least 6" in browser.set_password("abcde").get_data(as_text=True)
-    assert "too common" in browser.set_password("password").get_data(as_text=True)
-    assert "Password saved" in browser.set_password("aaaaab").get_data(as_text=True)
+    assert "enter a password" in browser.set_password("").get_data(as_text=True)
+    assert "Password saved" in browser.set_password("a").get_data(as_text=True)
+    assert visitor().register("newbie", password="password").status_code == 302
 
 
 # ---- Email confirmation
@@ -196,7 +193,7 @@ def test_reset_password_journey(make_user, visitor, outbox, get_user):
         assert visitor().c.get(path).status_code == 200
     assert visitor().login("author").status_code == 302, "opening the link must not change anything"
 
-    assert visitor().post(path, {"password": "abcde"}, token_from=path).status_code == 400
+    assert visitor().post(path, {"password": ""}, token_from=path).status_code == 400
     browser = visitor()
     assert browser.post(path, {"password": "brandnew"}, token_from=path).status_code == 302
     assert browser.logged_in()
@@ -299,6 +296,7 @@ def test_deleting_an_account_removes_only_what_was_theirs(make_user, visitor, ap
     bobby.post(f"/posts/{alices}/comment", {"body": "bobby on alice"})
     bobby.post(f"/posts/{alices}/believe", {"next": "/"})
     alice.post("/categories/alcohol/join")
+    alice.post("/check-in", {"mood": "4", "urges": "1", "on_track": "yes", "visibility": "private"})
     alice.add("bobby")
     bobby.add("alice")
 
@@ -309,6 +307,6 @@ def test_deleting_an_account_removes_only_what_was_theirs(make_user, visitor, ap
     assert b"have been deleted" in alice.post("/account/delete", follow_redirects=True).data
     assert get_user("alice") is None and not alice.logged_in()
     assert count(User) == 1 and count(Post) == 1 and count(Comment) == 0
-    assert count(Reaction) == 0 and count(Membership) == 0 and count(CircleLink) == 0
+    assert count(Reaction) == 0 and count(Membership) == 0 and count(CircleLink) == 0 and count(CheckIn) == 0
     assert "bobby stays" in visitor().text("/") and bobby.logged_in()
     assert visitor().register("alice2", "alice@mail.test").status_code == 302, "the email is free again"

@@ -1,8 +1,9 @@
 {% extends "base.html" %}
 
-{% block title %}Privacy · LarpHacks{% endblock %}
+{% block title %}Privacy · Cove{% endblock %}
 
 {% block content %}
+  <section class="card prose">
   <h1>Privacy Policy</h1>
   <p>Last updated {{ terms_version }}</p>
 
@@ -10,7 +11,8 @@
   <ul>
     <li><strong>Your email address</strong>, to keep each person to one account, confirm it's yours, and send password reset links.</li>
     <li><strong>Your username and password.</strong> Passwords are stored as a hash, never as plain text.</li>
-    <li><strong>What you share:</strong> posts, comments, reactions, the communities you join, your day counts and your circle.</li>
+    <li><strong>What you share:</strong> posts, photos, comments, reactions, the communities you join, your day counts and your circle.</li>
+    <li><strong>Your daily check-ins:</strong> your mood, how strong your urges were, whether you slipped and what was hardest.</li>
     <li><strong>When you accepted these terms</strong>, and which version.</li>
     <li><strong>Cookies</strong> that keep you logged in and protect your forms. We don't use advertising or analytics cookies.</li>
     <li><strong>Your IP address</strong>, used briefly to limit repeated attempts. Our hosting provider may also keep it in its logs.</li>
@@ -24,6 +26,8 @@
     <li><strong>Community posts:</strong> anyone, including people without an account.</li>
     <li><strong>My circle posts:</strong> you and the people in your circle.</li>
     <li><strong>Only me posts:</strong> just you.</li>
+    <li><strong>Photos:</strong> whoever can see the post they're on. We remove location and camera details when you upload one.</li>
+    <li><strong>Daily check-ins and your Progress page:</strong> just you. If you share a check-in, a short summary of it becomes a post for the audience you pick.</li>
     <li><strong>Your communities and day counts:</strong> you and the people in your circle.</li>
     <li><strong>Your comments and reactions:</strong> anyone who can see the post they're on.</li>
     <li><strong>Your email address:</strong> never shown to other members.</li>
@@ -33,12 +37,12 @@
   <p>We don't sell your data or show ads. We only share it with the services that run the site, or where the law requires it:</p>
   <ul>
     <li><strong>Render</strong> hosts the site and database, in the United States.</li>
-    <li><strong>Google</strong> delivers our emails from a Gmail account, so it receives your email address and each message.</li>
+    <li><strong>Google</strong> delivers our emails from a Gmail account, so it receives your email address and each message. It also serves the site's fonts, so it receives your IP address and browser details when a page loads.</li>
     <li><strong>Cloudflare</strong> runs the captcha on the sign-up and password reset forms, so it receives your IP address and browser details on those pages.</li>
   </ul>
 
   <h2>Keeping and deleting your data</h2>
-  <p>We keep your data until you delete it. The button on your account page immediately deletes your account, posts, comments and reactions. Copies in our providers' logs may last a little longer.</p>
+  <p>We keep your data until you delete it. The button on your account page immediately deletes your account, posts, photos, check-ins, comments and reactions. Copies in our providers' logs may last a little longer.</p>
 
   <h2>Your rights</h2>
   <p>You can see and delete your data from your profile and account pages. Depending on where you live, laws such as the GDPR or CCPA may give you further rights, including complaining to a regulator.</p>
@@ -47,8 +51,9 @@
   <p>The site uses HTTPS, stores passwords as hashes, and sends password reset links that work once and expire after an hour. No system is perfect, so think before sharing anything that could seriously hurt you if it leaked.</p>
 
   <h2>Children</h2>
-  <p>LarpHacks isn't for anyone under 13. If we learn that someone under 13 has an account, we'll delete it.</p>
+  <p>Cove isn't for anyone under 13. If we learn that someone under 13 has an account, we'll delete it.</p>
 
   <h2>Changes</h2>
   <p>If this policy changes, we'll update this page and its date.</p>
+  </section>
 {% endblock %}

@@ -12,7 +12,7 @@ from . import db, limiter
 from .demo import DEMO_EMAIL_DOMAIN, USERS as DEMO_USERNAMES
 from .mail import send_link_email
 from .models import TERMS_VERSION, User
-from .security import MIN_PASSWORD_LENGTH, captcha_passed, password_problem
+from .security import captcha_passed, password_problem
 
 bp = Blueprint("auth", __name__)
 
@@ -51,7 +51,7 @@ def read_link(token, salt, max_age):
 
 def send_confirmation(user):
     link = make_link("auth.confirm_email", "confirm-email", {"user_id": user.id, "email": user.email})
-    send_link_email(user.email, "Confirm your LarpHacks email", "Confirm your email to get the checkmark on your account:", link)
+    send_link_email(user.email, "Confirm your Cove email", "Confirm your email to get the checkmark on your account:", link)
 
 
 def form_username():
@@ -113,7 +113,7 @@ def register():
                 flash("You're in. Join what you're quitting to start your count, and check your email for a confirmation link.")
                 return redirect(url_for("main.category_list"))
 
-    page = render_template("register.html", username=username, email=email, min_password_length=MIN_PASSWORD_LENGTH, error=error)
+    page = render_template("register.html", username=username, email=email, error=error)
     return page, 400 if error else 200
 
 
@@ -178,7 +178,7 @@ def forgot_password():
             user = db.session.scalar(db.select(User).filter_by(email=form_email()))
             if user and not user.is_demo:
                 link = make_link("auth.reset_password", "reset-password", {"user_id": user.id, "fingerprint": user.password_fingerprint})
-                send_link_email(user.email, "Reset your LarpHacks password", "Use this link to choose a new password. It works once and expires in 1 hour:", link)
+                send_link_email(user.email, "Reset your Cove password", "Use this link to choose a new password. It works once and expires in 1 hour:", link)
             # The same message either way, so this form can't reveal who has an account here.
             flash("If that email has an account, a reset link is on its way. Check your spam folder too.")
             return redirect(url_for("auth.forgot_password"))
@@ -210,14 +210,14 @@ def reset_password(token):
             flash("Password saved.")
             return redirect(url_for("main.home"))
 
-    page = render_template("reset_password.html", min_password_length=MIN_PASSWORD_LENGTH, error=error)
+    page = render_template("reset_password.html", error=error)
     return page, 400 if error else 200
 
 
 @bp.route("/account")
 @login_required
 def account():
-    return render_template("account.html", min_password_length=MIN_PASSWORD_LENGTH)
+    return render_template("account.html")
 
 
 @bp.post("/account/confirm-email")

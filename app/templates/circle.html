@@ -1,58 +1,85 @@
 {% extends "base.html" %}
-{% from "_forms.html" import post_button %}
+{% from "_forms.html" import badge, post_button %}
+{% from "_ui.html" import avatar, icon %}
 
-{% block title %}Circle · LarpHacks{% endblock %}
+{% block title %}Circle · Cove{% endblock %}
+{% block main_class %}wide{% endblock %}
+
+{% macro person_name(person) %}
+  <a class="grow strong" href="{{ url_for('main.profile', username=person.username) }}">{{ person.username }}{{ badge(person) }}</a>
+{% endmacro %}
 
 {% block content %}
-  <h1>Your circle</h1>
-  <p>People here read what you post to "My circle", and you read theirs. Your username is <strong>{{ current_user.username }}</strong>, so share it with friends and they can add you.</p>
+  <div class="page-head">
+    <div>
+      <h1>Your circle</h1>
+      <p class="muted">People here read what you post to "My circle", and you read theirs. Your username is <strong>{{ current_user.username }}</strong>, so share it with friends and they can add you.</p>
+    </div>
+  </div>
 
-  <form method="post" action="{{ url_for('main.circle_add') }}">
-    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-    <label>
-      Add someone by username
-      <input name="username" required>
-    </label>
-    <button>Send request</button>
-  </form>
+  <div class="community-layout">
+    <div class="col">
+      <section class="card">
+        <form method="post" action="{{ url_for('main.circle_add') }}">
+          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+          <label class="field-label" for="add-username">Add someone by username</label>
+          <input class="input" id="add-username" name="username" required>
+          <button class="btn btn-primary btn-block mt-16">{{ icon("plus") }}Send request</button>
+        </form>
+      </section>
 
-  {% if incoming %}
-    <h2>Requests</h2>
-    <ul>
-      {% for person in incoming %}
-        <li>
-          <a href="{{ url_for('main.profile', username=person.username) }}">{{ person.username }}</a>
-          {{ post_button(url_for('main.circle_add'), 'Accept', username=person.username) }}
-          {{ post_button(url_for('main.circle_remove'), 'Decline', username=person.username) }}
-        </li>
-      {% endfor %}
-    </ul>
-  {% endif %}
+      {% if incoming %}
+        <section class="card">
+          <h2 class="h2">Requests</h2>
+          <ul class="list mt-8">
+            {% for person in incoming %}
+              <li class="list-row">
+                {{ avatar(person) }}
+                {{ person_name(person) }}
+                <div class="row-actions">
+                  {{ post_button(url_for('main.circle_add'), 'Accept', look="btn btn-primary btn-sm", username=person.username) }}
+                  {{ post_button(url_for('main.circle_remove'), 'Decline', username=person.username) }}
+                </div>
+              </li>
+            {% endfor %}
+          </ul>
+        </section>
+      {% endif %}
 
-  {% if outgoing %}
-    <h2>Sent</h2>
-    <ul>
-      {% for person in outgoing %}
-        <li>
-          <a href="{{ url_for('main.profile', username=person.username) }}">{{ person.username }}</a>
-          {{ post_button(url_for('main.circle_remove'), 'Cancel', username=person.username) }}
-        </li>
-      {% endfor %}
-    </ul>
-  {% endif %}
+      {% if outgoing %}
+        <section class="card">
+          <h2 class="h2">Sent</h2>
+          <ul class="list mt-8">
+            {% for person in outgoing %}
+              <li class="list-row">
+                {{ avatar(person) }}
+                {{ person_name(person) }}
+                {{ post_button(url_for('main.circle_remove'), 'Cancel', username=person.username) }}
+              </li>
+            {% endfor %}
+          </ul>
+        </section>
+      {% endif %}
 
-  <h2>Members</h2>
-  <ul>
-    {% for person in members %}
-      <li>
-        <a href="{{ url_for('main.profile', username=person.username) }}">{{ person.username }}</a>
-        {{ post_button(url_for('main.circle_remove'), 'Remove', username=person.username) }}
-      </li>
-    {% else %}
-      <li>No one yet.</li>
-    {% endfor %}
-  </ul>
+      <section class="card">
+        <div class="card-head"><h2 class="h2">Members</h2><p class="muted small">{{ members|length }} {{ "person" if members|length == 1 else "people" }}</p></div>
+        <ul class="list mt-8">
+          {% for person in members %}
+            <li class="list-row">
+              {{ avatar(person) }}
+              {{ person_name(person) }}
+              {{ post_button(url_for('main.circle_remove'), 'Remove', username=person.username) }}
+            </li>
+          {% else %}
+            <li class="list-row muted">No one yet.</li>
+          {% endfor %}
+        </ul>
+      </section>
+    </div>
 
-  <h2>From your circle</h2>
-  {% include "_feed.html" %}
+    <div class="col">
+      <div class="section-head"><h2 class="section-title">From your circle</h2></div>
+      {% include "_feed.html" %}
+    </div>
+  </div>
 {% endblock %}

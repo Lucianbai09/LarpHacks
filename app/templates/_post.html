@@ -1,22 +1,32 @@
 {% from "_forms.html" import badge, post_button %}
-<article id="post-{{ post.id }}">
-  <p>
-    <a href="{{ url_for('main.profile', username=post.author.username) }}"><strong>{{ post.author.username }}</strong></a>{{ badge(post.author) }}
-    · {{ post.report_label }}
-    · {% if post.category %}<a href="{{ url_for('main.category_feed', slug=post.category.slug) }}">{{ post.category.name }}</a>{% else %}Overall{% endif %}
-    · {{ post.visibility_label }}
-    · {{ post.created_at.strftime("%b %d, %Y") }}
-  </p>
-  <p class="post-body">{{ post.body }}</p>
-  <div>
+{% from "_ui.html" import audience_icon, avatar, icon %}
+<article class="card post" id="post-{{ post.id }}">
+  <header class="person-row">
+    {{ avatar(post.author) }}
+    <div class="grow">
+      <p class="strong"><a href="{{ url_for('main.profile', username=post.author.username) }}">{{ post.author.username }}</a>{{ badge(post.author) }}</p>
+      <p class="muted small">
+        {{ post.created_at.strftime("%b %d, %Y") }}
+        · {% if post.category %}<a href="{{ url_for('main.category_feed', slug=post.category.slug) }}">{{ post.category.name }}</a>{% else %}Overall{% endif %}
+        · {{ post.report_label }}
+      </p>
+    </div>
+    <span class="pill">{{ audience_icon(post.visibility) }}{{ post.visibility_label }}</span>
+  </header>
+  {% if post.body %}<p class="post-text post-body">{{ post.body }}</p>{% endif %}
+  {% if post.photo %}
+    <a class="post-photo" href="{{ url_for('main.post_photo', post_id=post.id) }}"><img src="{{ url_for('main.post_photo', post_id=post.id) }}" alt="Photo shared by {{ post.author.username }}" loading="lazy"></a>
+  {% endif %}
+  <footer class="post-actions">
     {% set believers = post.reactions|length %}
     {% if not current_user.is_authenticated %}
-      <a href="{{ url_for('auth.login', next=request.path) }}">I believe you ({{ believers }})</a>
+      <a class="action-btn" href="{{ url_for('auth.login', next=request.path) }}">{{ icon("heart") }}I believe you ({{ believers }})</a>
     {% elif post.open_to(current_user) %}
-      {{ post_button(url_for('main.believe', post_id=post.id), ('You believe this' if post.believed_by(current_user) else 'I believe you') ~ ' (' ~ believers ~ ')') }}
+      {% set believed = post.believed_by(current_user) %}
+      {{ post_button(url_for('main.believe', post_id=post.id), ('You believe this' if believed else 'I believe you') ~ ' (' ~ believers ~ ')', look="action-btn", icon_name="heart", pressed=believed) }}
     {% else %}
-      {{ believers }} believe this
+      <span class="action-btn">{{ icon("heart") }}{{ believers }} believe this</span>
     {% endif %}
-    · <a href="{{ url_for('main.post_detail', post_id=post.id) }}">{{ post.comments|length }} comment{{ '' if post.comments|length == 1 else 's' }}</a>
-  </div>
+    <a class="muted small" href="{{ url_for('main.post_detail', post_id=post.id) }}">{{ post.comments|length }} comment{{ '' if post.comments|length == 1 else 's' }}</a>
+  </footer>
 </article>

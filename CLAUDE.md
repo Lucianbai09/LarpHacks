@@ -1,6 +1,6 @@
-# LarpHacks
+# Cove
 
-Hackathon addiction tracker. Flask, Jinja2, PostgreSQL, deployed on Render. See `README.md` for setup.
+Hackathon addiction tracker. The product is called Cove, while the repo and databases keep the name LarpHacks. Flask, Jinja2, PostgreSQL, deployed on Render. See `README.md` for setup.
 
 ## Rules for every change
 

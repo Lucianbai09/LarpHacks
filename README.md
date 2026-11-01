@@ -1,6 +1,6 @@
-# LarpHacks
+# Cove
 
-Addiction tracker: post your progress and larp as someone who already quit, until it's true.
+Addiction tracker, made at LarpHacks: post your progress and larp as someone who already quit, until it's true.
 
 Flask, Jinja2 and PostgreSQL. Tested on Python 3.14 and PostgreSQL 18.
 
@@ -37,7 +37,7 @@ Outside VS Code, run `.venv\Scripts\python.exe run.py`.
 
 | Account | Shows |
 | --- | --- |
-| `maya` | Has a post for each audience, and a circle request from `sam` to accept live |
+| `maya` | Has a post for each audience, a week of check-ins with today's still open to do live, and a circle request from `sam` to accept live |
 | `theo` | In `maya`'s circle, so they can read `maya`'s circle posts but not the private one |
 | `sam` | Not in a circle yet, so they only see community posts |
 | `jonas`, `priya` | A second circle, with their own circle and private posts |
@@ -54,7 +54,7 @@ Real people can't register those usernames or an `@example.com` email.
 
 ## Accounts and email
 
-Registering takes a username, an email and a password, and each email can only have one account. Accounts work straight away. A confirmation link is emailed too, and clicking it adds a checkmark next to your name. Forgot password emails a link that works once and expires in an hour.
+Registering takes a username, an email and a password, and each email can only have one account. There are no password rules, so anything that isn't blank works. Accounts work straight away. A confirmation link is emailed too, and clicking it adds a checkmark next to your name. Forgot password emails a link that works once and expires in an hour.
 
 **Locally, email setup is optional.** F5 always shows each link on the page too, so local testing works with `EMAIL_WEBHOOK_URL` blank or broken. This only happens in debug mode, so never on Render.
 
@@ -66,7 +66,7 @@ Registering takes a username, an email and a password, and each email can only h
    ```js
    function doPost(e) {
      const email = JSON.parse(e.postData.contents);
-     MailApp.sendEmail({ to: email.to, subject: email.subject, body: email.body, name: "LarpHacks" });
+     MailApp.sendEmail({ to: email.to, subject: email.subject, body: email.body, name: "Cove" });
      return ContentService.createTextOutput("sent");
    }
    ```
@@ -103,7 +103,9 @@ If emails don't arrive, check spam, then look for an error in VS Code's Debug Co
 | My circle | The author and people in their circle |
 | Only me | The author |
 
-Circle membership is mutual and needs an accepted request. Communities on a profile are only shown to that person and their circle.
+Circle membership is mutual and needs an accepted request. Communities on a profile are only shown to that person and their circle. A post's photo has the same audience as the post.
+
+Daily check-ins and the Progress page are only visible to you. Sharing a check-in turns a one-line summary of it into a normal post, always under Overall, so it doesn't reveal what you're quitting.
 
 `visible_to()` in `app/models.py` is the one place these rules live. Any new query that reads posts must use it.
 
@@ -120,14 +122,18 @@ Circle membership is mutual and needs an accepted request. Communities on a prof
 | `app/mail.py` | Sends email |
 | `tests/` | Automated tests, including rules every new route must follow |
 | `.github/` | Weekly security checks and dependency updates |
-| `app/views.py` | Feeds, write, posts, communities, profiles, circles |
+| `app/views.py` | Feeds, write, check-ins, progress, posts, communities, profiles, circles |
+| `app/photos.py` | Cleans up uploaded photos |
 | `app/demo.py` | Demo data for `flask seed-demo` |
-| `app/templates/` | Jinja templates. `_post.html` is one post, `_forms.html` has the one-click button macro |
-| `app/static/style.css` | All the styling |
+| `app/templates/` | Jinja templates. `_post.html` is one post, `_forms.html` has the form macros, `_ui.html` has icons and medals, `_icons.html` is the icon set |
+| `app/static/style.css` | All the styling, and the design system's colours at the top |
+| `app/static/app.js` | Confirm pop-ups, the password eye button, and the landing page's motion |
 
 ## Changing things
 
-**Add a category:** add a line to `CATEGORIES` in `app/models.py`, then run `flask init-db`. Pages pick it up from the database.
+**Add a category:** add a line to `CATEGORIES` in `app/models.py`, with an icon name from `_icons.html`, then run `flask init-db`. Pages pick it up from the database.
+
+**Change the check-in questions:** the answers are listed at the top of `app/models.py`.
 
 **Change a table:** there are no migrations yet. `flask init-db` only creates missing tables, so changing an existing one means recreating your local database with `dropdb` and `createdb`, then running `flask init-db` again. On Render, that means deleting and recreating the database, which loses its data.
 

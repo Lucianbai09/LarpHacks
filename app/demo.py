@@ -1,9 +1,23 @@
 from datetime import date, datetime, timedelta, timezone
 
+from PIL import Image, ImageDraw
 from werkzeug.security import generate_password_hash
 
 from . import db
-from .models import TERMS_VERSION, Category, CircleLink, Comment, Membership, Post, Reaction, User, init_db
+from .models import (
+    TERMS_VERSION,
+    Category,
+    CheckIn,
+    CircleLink,
+    Comment,
+    Membership,
+    Post,
+    PostPhoto,
+    Reaction,
+    User,
+    init_db,
+)
+from .photos import to_jpeg
 
 # Public on purpose. These accounts are walled off from real ones.
 PASSWORD = "larping123"  # nosec B105
@@ -29,7 +43,41 @@ CIRCLE_LINKS = [
     ("lena", "theo", False),
 ]
 
+# Days ago, mood, urges, stayed on track, hardest part. Today stays open, so a check-in can be done on stage.
+CHECK_INS = {
+    "maya": [
+        (6, 2, 3, True, "stress"),
+        (5, 3, 2, True, "boredom"),
+        (4, 2, 4, False, "people"),
+        (3, 3, 2, True, "stress"),
+        (2, 3, 3, True, "stress"),
+        (1, 4, 1, True, "nothing"),
+    ],
+    "theo": [(3, 3, 2, True, "boredom"), (2, 4, 1, True, "nothing"), (1, 4, 1, True, "nothing")],
+}
+
 POSTS = [
+    {
+        "author": "priya",
+        "category": "scrolling",
+        "report_type": "reflection",
+        "visibility": "public",
+        "days_ago": 3,
+        "body": "I watched the sun come up from the kitchen this morning instead of reading about other people's mornings. I'm happier now. Not all the time, but more than I was.",
+        "photo": True,
+        "comments": [("sam", "This is the kind of morning I'm after.")],
+        "believers": ["sam", "lena"],
+    },
+    {
+        "author": "theo",
+        "category": None,
+        "report_type": "checkin",
+        "visibility": "circle",
+        "days_ago": 1,
+        "body": "Feeling good. Urges: mild. Stayed in character.",
+        "comments": [],
+        "believers": ["maya"],
+    },
     {
         "author": "jonas",
         "category": "alcohol",
@@ -203,6 +251,17 @@ POSTS = [
 ]
 
 
+def sunrise_photo():
+    """Drawn here, so the demo has a photo post without keeping an image file in the repo."""
+    image = Image.new("RGB", (1280, 720), "#FFD0A6")
+    draw = ImageDraw.Draw(image)
+    draw.ellipse((820, 170, 1050, 400), fill="#FFF0DF")
+    draw.ellipse((-400, 430, 800, 1200), fill="#F9A66C")
+    draw.ellipse((500, 470, 1800, 1200), fill="#F9A66C")
+    draw.ellipse((-300, 590, 1500, 1300), fill="#ED7D3A")
+    return to_jpeg(image)
+
+
 def seed():
     init_db()
 
@@ -256,7 +315,22 @@ def seed():
         )
         post.comments = [Comment(author=users[name], body=body) for name, body in item["comments"]]
         post.reactions = [Reaction(user_id=users[name].id) for name in item["believers"]]
+        if item.get("photo"):
+            post.photo = PostPhoto(data=sunrise_photo())
         db.session.add(post)
+
+    for username, check_ins in CHECK_INS.items():
+        for days_ago, mood, urges, on_track, trigger in check_ins:
+            db.session.add(
+                CheckIn(
+                    user_id=users[username].id,
+                    day=date.today() - timedelta(days=days_ago),
+                    mood=mood,
+                    urges=urges,
+                    on_track=on_track,
+                    trigger=trigger,
+                )
+            )
 
     # One commit, so a failure anywhere above leaves nothing half-added.
     db.session.commit()

@@ -1,35 +1,38 @@
 {% extends "base.html" %}
-{% from "_forms.html" import captcha %}
+{% from "_forms.html" import captcha, password_field %}
+{% from "_ui.html" import icon %}
 
-{% block title %}Register · LarpHacks{% endblock %}
+{% block title %}Sign up · Cove{% endblock %}
 
 {% block content %}
-  <h1>Register</h1>
-  <p>Your username is public, so it doesn't have to be your real name. Your email stays private.</p>
-  {% if error %}<p class="error">{{ error }}</p>{% endif %}
-  <form method="post">
-    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-    <label>
-      Username
-      <input name="username" value="{{ username }}" autocomplete="username" required autofocus>
-    </label>
-    <label>
-      Email
-      <input type="email" name="email" value="{{ email }}" autocomplete="email" required>
-    </label>
-    <label>
-      Password
-      <input type="password" name="password" minlength="{{ min_password_length }}" autocomplete="new-password" required>
-    </label>
-    <label>
-      <input type="checkbox" name="terms" {% if request.form.get("terms") %}checked{% endif %} required>
-      I'm at least 13, and I agree to the
-      <a href="{{ url_for('main.terms') }}" target="_blank">Terms</a> and
-      <a href="{{ url_for('main.privacy') }}" target="_blank">Privacy Policy</a>,
-      including LarpHacks storing what I share about my habits.
-    </label>
-    {{ captcha() }}
-    <button>Start larping</button>
-  </form>
-  <p>Already in character? <a href="{{ url_for('auth.login') }}">Log in</a></p>
+  <section class="card auth-card">
+    <h1>Create your account</h1>
+    <p class="muted mt-8">Your username is public, so it doesn't have to be your real name. Your email stays private.</p>
+    {% if error %}<p class="form-msg mt-16" role="alert">{{ icon("alert") }}<span>{{ error }}</span></p>{% endif %}
+    <form method="post" class="stack mt-20">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      <div>
+        <label class="field-label" for="username">Username</label>
+        <input class="input" id="username" name="username" value="{{ username }}" autocomplete="username" required autofocus>
+      </div>
+      <div>
+        <label class="field-label" for="email">Email</label>
+        <input class="input" id="email" type="email" name="email" value="{{ email }}" autocomplete="email" required>
+      </div>
+      {{ password_field("Password", "new-password") }}
+      <label class="check-row small">
+        <input class="sr-only" type="checkbox" name="terms" {% if request.form.get("terms") %}checked{% endif %} required>
+        <span class="check-ind" aria-hidden="true">{{ icon("tick") }}</span>
+        <span>
+          I'm at least 13, and I agree to the
+          <a class="text-link" href="{{ url_for('main.terms') }}" target="_blank">Terms</a> and
+          <a class="text-link" href="{{ url_for('main.privacy') }}" target="_blank">Privacy Policy</a>,
+          including Cove storing what I share about my habits.
+        </span>
+      </label>
+      {{ captcha() }}
+      <button class="btn btn-primary btn-block">Start larping</button>
+    </form>
+    <p class="muted small center mt-16">Already in character? <a class="text-link" href="{{ url_for('auth.login') }}">Log in</a></p>
+  </section>
 {% endblock %}

@@ -1,0 +1,62 @@
+{% extends "base.html" %}
+{% from "_ui.html" import bar_chart, icon, week_dots %}
+
+{% block title %}Progress · Cove{% endblock %}
+
+
+{% block content %}
+  <div class="page-head"><h1>Progress</h1></div>
+  <p class="privacy">{{ icon("lock") }}<span>Only you can see this page.</span></p>
+
+  {% if summary %}
+    <section class="card" aria-labelledby="week-title">
+      <h2 class="h2" id="week-title">Last 7 days</h2>
+      <div class="stats mt-16">
+        <div class="stat"><p class="stat-label">In character</p><p class="stat-value">{{ summary.on_track }}/{{ summary.count }}</p></div>
+        <div class="stat"><p class="stat-label">Average mood</p><p class="stat-value">{{ summary.mood }}</p></div>
+        <div class="stat"><p class="stat-label">Average urges</p><p class="stat-value">{{ summary.urges }}</p></div>
+      </div>
+      {% if hardest %}
+        <p class="strong mt-16">{{ "Today" if hardest.day == today else hardest.day.strftime("%A") }} was your hardest day.{% if hardest.trigger_label and hardest.trigger != "nothing" %} Hardest part: {{ hardest.trigger_label|lower }}.{% endif %}</p>
+      {% endif %}
+      {{ week_dots(week, today) }}
+
+      <div class="divider"></div>
+      <h3 class="h2">Mood</h3>
+      <p class="muted small mt-4">Higher is better</p>
+      {{ bar_chart(week, today, "mood") }}
+
+      <div class="divider"></div>
+      <h3 class="h2">Urges</h3>
+      <p class="muted small mt-4">Lower is better</p>
+      {{ bar_chart(week, today, "urges") }}
+
+      <div class="legend">
+        <span><i class="key-on"></i>In character</span>
+        <span><i class="key-slip"></i>Slipped</span>
+      </div>
+    </section>
+
+    <section class="card" aria-labelledby="month-title">
+      <h2 class="h2" id="month-title">Last 30 days</h2>
+      <div class="stats mt-16">
+        <div class="stat"><p class="stat-label">Check-ins</p><p class="stat-value">{{ month.count }}</p></div>
+        <div class="stat"><p class="stat-label">In character</p><p class="stat-value">{{ month.on_track }}/{{ month.count }}</p></div>
+        <div class="stat"><p class="stat-label">Hardest part</p><p class="stat-value stat-sm">{{ month.trigger or "None yet" }}</p></div>
+      </div>
+    </section>
+
+    <section class="card" aria-labelledby="share-title">
+      <h2 class="h2" id="share-title">Share how it's going</h2>
+      <p class="muted mt-8">This starts a weekly report with your numbers filled in. You choose who reads it.</p>
+      <a class="btn btn-secondary btn-block mt-16" href="{{ url_for('main.write', report_type='weekly', body=report) }}">{{ icon("pen") }}Write a weekly report</a>
+    </section>
+  {% else %}
+    <section class="card empty">
+      <div class="empty-icon">{{ icon("check") }}</div>
+      <h2 class="h2">No check-ins yet</h2>
+      <p class="muted mt-8">Your first one takes about 20 seconds.</p>
+      <a class="btn btn-primary mt-20" href="{{ url_for('main.check_in') }}">Check in now</a>
+    </section>
+  {% endif %}
+{% endblock %}

@@ -1,0 +1,82 @@
+{% extends "base.html" %}
+{% from "_ui.html" import brand_mark, icon %}
+
+{% block title %}Cove · Act like you already quit{% endblock %}
+
+{% block body %}
+  {% set cards = [
+    {"tab": "Communities", "featured": true, "tags": [("glass", "Alcohol"), ("phone", "Scrolling")], "title": "Join what you're quitting",
+     "text": "Joining starts your days-in-character count. Slip up, hit “I broke character”, and start again."},
+    {"tab": "Check in", "tags": [("mood-4", "Feeling good"), ("chart", "Last 7 days")], "title": "Check in daily",
+     "text": "A few taps and no typing, about 20 seconds. Then watch your mood and urges change over the week."},
+    {"tab": "Write", "tags": [("pen", "Reflection"), ("camera", "Photo")], "title": "Share how life feels",
+     "text": "Reports, reflections and photos. You choose who sees each one: everyone, your circle or only you."},
+    {"tab": "Circle", "tags": [("heart", "I believe you"), ("award", "Medals")], "title": "Find your people",
+     "text": "Add friends by username. No likes here. People tap “I believe you”, and you earn medals as your count grows."},
+  ] %}
+
+  <main class="landing" id="main">
+    <nav class="land-nav" aria-label="Cove">
+      <a class="brand" href="{{ url_for('main.home') }}">{{ brand_mark() }}Cove</a>
+      <a class="land-link" href="#how">How it works</a>
+      <a class="land-link solid" href="{{ url_for('auth.login') }}">Log in</a>
+    </nav>
+
+    <div class="land-flash stack">{% include "_flashes.html" %}</div>
+
+    <section class="land-hero" aria-labelledby="land-title">
+      <div class="float-field" aria-hidden="true"></div>
+      <h1 class="land-title" id="land-title">Act like you've already quit.</h1>
+      <p class="land-sub">Alcohol, scrolling, gaming or all of them. Cove helps you quit by living as the person you want to be, one short check-in a day, with people who get it.</p>
+      <div class="land-cta">
+        <a class="btn btn-signup" href="{{ url_for('auth.register') }}">Sign up free{{ icon("arrow") }}</a>
+        <p class="muted">Free and private by default. <a class="text-link" href="#stories">Read what people are sharing</a></p>
+      </div>
+    </section>
+
+    <section class="land-section" id="how" aria-labelledby="how-title">
+      <h2 class="land-h2" id="how-title">How it works</h2>
+      <p class="muted">Four parts, one habit at a time.</p>
+      <div class="stage">
+        <div class="window" aria-hidden="true">
+          <div class="window-bar">
+            <span class="win-dots"><i></i><i></i><i></i></span>
+            {% for card in cards %}
+              <button type="button" class="win-tab" tabindex="-1" aria-pressed="{{ 'true' if loop.first else 'false' }}">{{ icon(card.tags[0][0]) }}{{ card.tab }}</button>
+            {% endfor %}
+          </div>
+        </div>
+        <div class="cards">
+          {% for card in cards %}
+            <div class="fcard-wrap">
+              <article class="fcard{% if card.featured %} featured{% endif %}{% if loop.first %} is-active{% endif %}">
+                <div class="fcard-tags">
+                  {% for tag_icon, tag in card.tags %}<span class="tag">{{ icon(tag_icon) }}{{ tag }}</span>{% endfor %}
+                </div>
+                <h3 class="fcard-title">{{ card.title }}</h3>
+                <p class="fcard-text">{{ card.text }}</p>
+              </article>
+            </div>
+          {% endfor %}
+        </div>
+      </div>
+    </section>
+
+    <section class="land-feed" id="stories" aria-labelledby="stories-title">
+      <h2 class="land-h2" id="stories-title">Real days, in public</h2>
+      <p class="muted">Anyone can read what people choose to share with their community.</p>
+      <div class="stack mt-24">{% include "_feed.html" %}</div>
+    </section>
+
+    <section class="land-close" aria-labelledby="close-title">
+      <h2 class="land-h2" id="close-title">Ready to play the part?</h2>
+      <a class="btn btn-signup" href="{{ url_for('auth.register') }}">Sign up free{{ icon("arrow") }}</a>
+    </section>
+
+    <div class="land-foot">{{ brand_mark() }}Cove · made at LarpHacks</div>
+    <footer class="site-foot">
+      Cove isn't medical care.
+      <a class="text-link" href="{{ url_for('main.terms') }}">Terms</a> · <a class="text-link" href="{{ url_for('main.privacy') }}">Privacy</a>
+    </footer>
+  </main>
+{% endblock %}

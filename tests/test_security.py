@@ -9,6 +9,7 @@ from pathlib import Path
 from urllib.parse import parse_qs, urlparse
 
 import pytest
+from PIL import Image
 
 from app import create_app, limiter
 from app.mail import deliver, page_text
@@ -26,6 +27,7 @@ PUBLIC_ENDPOINTS = {
     "main.category_list",
     "main.category_feed",
     "main.post_detail",
+    "main.post_photo",
     "main.profile",
     "auth.register",
     "auth.login",
@@ -151,6 +153,7 @@ def test_no_unsafe_templates_or_html():
     for path, text in source("*.html"):
         assert "|safe" not in text and "autoescape false" not in text, f"escaping turned off in {path}"
         assert not re.search(r"\son[a-z]+\s*=", text), f"inline event handler in {path}, which the security policy blocks"
+        assert not re.search(r"\sstyle\s*=", text), f"style attribute in {path}, which the security policy blocks"
         for script in re.findall(r"<script\b[^>]*>", text):
             assert "src=" in script, f"inline script in {path}, which the security policy blocks"
 
@@ -221,8 +224,50 @@ def test_faked_host_header_cannot_change_email_links(app, make_user, outbox):
 def test_oversized_requests_are_refused(make_user):
     browser = make_user("alice")
     token = browser.token("/")
-    response = browser.c.post("/write", data={"csrf_token": token, "body": "x" * (1024 * 1024 + 1)})
+    response = browser.c.post("/write", data={"csrf_token": token, "body": "x" * (11 * 1024 * 1024 + 1)})
     assert response.status_code == 413
+
+
+# ---- Photos
+
+
+def phone_photo():
+    """A JPEG with a GPS location in it, like a phone would take."""
+    exif = Image.Exif()
+    exif.get_ifd(0x8825)[1] = "N"
+    output = io.BytesIO()
+    Image.new("RGB", (2000, 1000), "orange").save(output, "JPEG", exif=exif)
+    assert Image.open(io.BytesIO(output.getvalue())).getexif().get_ifd(0x8825)
+    return io.BytesIO(output.getvalue())
+
+
+def test_photos_lose_their_location_and_follow_the_post_audience(make_user, visitor, post_id):
+    alice = make_user("alice")
+    stranger = make_user("stranger")
+    alice.post("/write", {"body": "circle-photo", "visibility": "circle", "report_type": "reflection", "photo": (phone_photo(), "me.jpg")})
+    url = f"/posts/{post_id('circle-photo')}/photo"
+    assert url in alice.text("/")
+
+    photo = alice.c.get(url)
+    saved = Image.open(io.BytesIO(photo.data))
+    assert photo.status_code == 200 and photo.mimetype == "image/jpeg"
+    assert not saved.getexif().get_ifd(0x8825), "the location has to go"
+    assert max(saved.size) == 1280
+
+    assert visitor().c.get(url).status_code == 404
+    assert stranger.c.get(url).status_code == 404
+    assert url not in stranger.text("/")
+
+
+def test_a_photo_can_be_the_whole_post_but_other_files_cannot(make_user, count):
+    browser = make_user("alice")
+    fields = {"body": "", "visibility": "public", "report_type": "post"}
+    for name, junk in [("x.png", b"<script>alert(1)</script>"), ("x.svg", b"<svg xmlns='http://www.w3.org/2000/svg' onload='alert(1)'/>"), ("x.jpg", b"")]:
+        response = browser.post("/write", {**fields, "photo": (io.BytesIO(junk), name)})
+        assert response.status_code == 400, name
+    assert count(Post) == 0
+    assert browser.post("/write", {**fields, "photo": (phone_photo(), "me.jpg")}).status_code == 302
+    assert count(Post) == 1
 
 
 def test_sessions_from_before_a_password_change_stop_working(make_user, visitor):

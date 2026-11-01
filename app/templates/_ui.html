@@ -1,0 +1,91 @@
+{# An icon from _icons.html. #}
+{% macro icon(name, cls="") %}<svg class="i {{ cls }}" aria-hidden="true"><use href="#i-{{ name }}"></use></svg>{% endmacro %}
+
+{% macro brand_mark() %}<span class="brand-mark" aria-hidden="true"><svg class="mark"><use href="#i-mask"></use></svg></span>{% endmacro %}
+
+{% macro avatar(person, size="") %}<span class="avatar avatar-{{ person.id % 3 }} {{ size }}" aria-hidden="true">{{ person.username[0]|upper }}</span>{% endmacro %}
+
+{% macro audience_icon(visibility) %}{{ icon({"public": "globe", "circle": "people", "private": "lock"}[visibility]) }}{% endmacro %}
+
+{# Five bars that fill up with how strong the urges were. #}
+{% macro urge_bars(level) %}
+  <svg class="i urge-bars" viewBox="0 0 24 24" aria-hidden="true">
+    {% for height in [3, 6, 9, 12, 15] %}<path class="{{ 'on' if loop.index <= level else 'off' }}" d="M{{ loop.index * 4 }} 20v-{{ height }}"></path>{% endfor %}
+  </svg>
+{% endmacro %}
+
+{# A dot for each of the last seven days. Slips get a cross, so they never rely on colour alone. #}
+{% macro week_dots(week, today) %}
+  <ol class="week">
+    {% for item in week %}
+      {% set entry = item.entry %}
+      {% set state = ("on" if entry.on_track else "slip") if entry else ("pending" if item.day == today else "missed") %}
+      <li class="day {{ state }}{% if item.day == today %} today{% endif %}">
+        <span class="day-dot" aria-hidden="true">{% if entry %}{{ icon("tick" if entry.on_track else "x") }}{% endif %}</span>
+        <span class="day-label" aria-hidden="true">{{ item.day.strftime("%a")[0] }}</span>
+        <span class="sr-only">{{ item.day.strftime("%A") }}: {{ {"on": "in character", "slip": "slipped", "pending": "not checked in yet", "missed": "no check-in"}[state] }}</span>
+      </li>
+    {% endfor %}
+  </ol>
+{% endmacro %}
+
+{# Bars for the last seven days. `kind` is "mood" or "urges". #}
+{% macro bar_chart(week, today, kind) %}
+  <div class="chart {{ kind }}">
+    {% for item in week %}
+      {% set entry = item.entry %}
+      <div class="chart-col{% if entry and not entry.on_track %} slip{% endif %}{% if not entry %} pending{% endif %}">
+        <span class="chart-area"><span class="chart-bar{% if entry %} h-{{ entry.mood if kind == 'mood' else entry.urges + 1 }}{% endif %}"></span></span>
+        <span class="chart-label">{{ "Today" if item.day == today else item.day.strftime("%a") }}</span>
+        <span class="sr-only">{% if entry %}{{ entry.mood_label if kind == "mood" else entry.urges_label }}{% else %}No check-in{% endif %}</span>
+      </div>
+    {% endfor %}
+  </div>
+{% endmacro %}
+
+{# A hexagon medal: ribbons and a shine once earned, a progress ring while it's next, a dashed outline while locked. #}
+{% macro medal(days, tier, status, percent) %}
+  <svg class="medal tier-{{ tier }} {{ status }}" viewBox="0 0 64 74" aria-hidden="true">
+    {% if status == "earned" %}
+      <path class="medal-ribbon" d="M22 50 16.5 70.5l7-3.6 4.4 5.6L31 58z"></path>
+      <path class="medal-ribbon" d="M42 50l5.5 20.5-7-3.6-4.4 5.6L33 58z"></path>
+    {% endif %}
+    <path class="medal-body" d="M32 3.5 56.5 17.5v28L32 59.5 7.5 45.5v-28z"></path>
+    {% if status == "earned" %}<path class="medal-shine" d="M17 13.5 23.5 9.8l21 35.9-6.5 3.7z"></path>{% endif %}
+    <circle class="medal-face" cx="32" cy="32" r="14"></circle>
+    {% if status == "next" %}
+      <circle class="medal-track" cx="32" cy="32" r="18"></circle>
+      <circle class="medal-ring" cx="32" cy="32" r="18" pathLength="100" transform="rotate(-90 32 32)" stroke-dasharray="{{ percent }} 100"></circle>
+    {% endif %}
+    <text class="medal-text" x="32" y="32.5" text-anchor="middle" dominant-baseline="central">{{ days }}</text>
+  </svg>
+{% endmacro %}
+
+{# One community's count. What someone is quitting is sensitive, so only show this where the viewer may see memberships. #}
+{% macro days_card(membership) %}
+  {% set category = membership.category %}
+  {% set next_up = membership.next_milestone %}
+  <section class="card">
+    <div class="card-head">
+      <h2 class="label">Days in character</h2>
+      <a class="pill" href="{{ url_for('main.category_feed', slug=category.slug) }}">{{ icon(category.icon) }}{{ category.name }}</a>
+    </div>
+    <p class="big-num"><b>{{ membership.days }}</b><span>{{ "day" if membership.days == 1 else "days" }}</span></p>
+    <p class="pledge-quote mt-12">“{{ category.pledge }}”</p>
+    {% if next_up %}
+      <progress class="meter mt-20" value="{{ membership.days }}" max="{{ next_up[0] }}" aria-label="Progress to your {{ next_up[1] }} medal"></progress>
+      <p class="muted small mt-8">{{ membership.days_label }}. {{ next_up[0] - membership.days }} more until your {{ next_up[1] }} medal.</p>
+    {% else %}
+      <p class="muted small mt-8">{{ membership.days_label }}. That's every medal.</p>
+    {% endif %}
+    <ul class="medal-row">
+      {% for days, label in membership.milestones %}
+        {% set status = "earned" if days <= membership.days else "next" if days == next_up[0] else "locked" %}
+        <li class="medal-item {{ status }}">
+          {{ medal(days, loop.index, status, (membership.days * 100 / days)|round|int) }}
+          <span class="medal-label">{{ label }}</span>
+        </li>
+      {% endfor %}
+    </ul>
+  </section>
+{% endmacro %}

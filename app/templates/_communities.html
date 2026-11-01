@@ -1,0 +1,25 @@
+{% from "_forms.html" import post_button %}
+{% from "_ui.html" import icon %}
+<div class="section-head"><h2 class="section-title">Communities</h2></div>
+<div class="comm-grid">
+  {% for item in categories %}
+    <div class="comm-tile{% if category is defined and category.id == item.id %} selected{% endif %}">
+      {{ icon(item.icon) }}
+      <a class="comm-name" href="{{ url_for('main.category_feed', slug=item.slug) }}">{{ item.name }}</a>
+      {% if item.id in memberships %}
+        <span class="comm-meta">{{ memberships[item.id].days_label }}</span>
+        <span class="joined">Joined</span>
+      {% elif current_user.is_authenticated %}
+        {{ post_button(url_for('main.join', slug=item.slug), 'Join', look="btn btn-secondary btn-sm") }}
+      {% else %}
+        <span class="comm-meta">Read the posts</span>
+      {% endif %}
+    </div>
+  {% endfor %}
+  <div class="comm-tile">
+    {{ icon("sparkle") }}
+    <a class="comm-name" href="{{ url_for('main.home') }}">Overall</a>
+    <span class="comm-meta">Posts for everyone, on your home feed</span>
+  </div>
+</div>
+<p class="privacy">{{ icon("globe") }}<span>Posts set to Community can be read by anyone, even without an account.</span></p>

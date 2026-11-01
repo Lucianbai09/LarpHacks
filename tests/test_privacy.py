@@ -1,7 +1,7 @@
 from datetime import date, timedelta
 
 from app import db
-from app.models import CircleLink, Membership, Post, User
+from app.models import CheckIn, CircleLink, Membership, Post, User
 
 BODIES = {"public": "BODY-public-xyz", "circle": "BODY-circle-xyz", "private": "BODY-private-xyz"}
 READERS = {
@@ -164,6 +164,43 @@ def test_removing_someone_closes_everything_at_once(make_user, post_id, visitor)
     assert "in character" not in bobby.text("/u/alice")
 
 
+# ---- Daily check-ins
+
+
+CHECK_IN = {"mood": "4", "urges": "1", "on_track": "yes", "visibility": "private"}
+
+
+def test_check_ins_stay_private_until_shared(make_user, visitor, count):
+    alice = make_user("alice")
+    bobby = make_user("bobby")
+    alice.add("bobby")
+    bobby.add("alice")
+
+    assert alice.post("/check-in", CHECK_IN).status_code == 302
+    assert "You checked in today" in alice.text("/") and "Good mood" in alice.text("/")
+    assert count(Post) == 0 and "1/1" in alice.text("/progress")
+    assert "1/1" not in bobby.text("/progress"), "your progress page is only ever your own"
+
+    alice.post("/check-in", {**CHECK_IN, "mood": "5", "visibility": "circle"})
+    assert count(CheckIn) == 1 and count(Post) == 1, "one a day, and answering again updates it"
+    assert "Feeling great" in bobby.text("/") and "Feeling great" not in visitor().text("/")
+
+    alice.post("/check-in", {**CHECK_IN, "mood": "3", "visibility": "circle"})
+    assert count(Post) == 1 and "Feeling okay" in bobby.text("/") and "Feeling great" not in bobby.text("/")
+
+    alice.post("/check-in", CHECK_IN)
+    assert count(CheckIn) == 1 and count(Post) == 0 and "Feeling" not in bobby.text("/")
+
+
+def test_check_in_refuses_bad_answers_and_keeps_good_ones(make_user, count):
+    browser = make_user("alice")
+    for bad in [{"mood": "9"}, {"mood": "x"}, {"urges": "7"}, {"on_track": "maybe"}, {"trigger": "nope"}, {"visibility": "everyone"}]:
+        assert browser.post("/check-in", {**CHECK_IN, **bad}).status_code == 400, bad
+    assert count(CheckIn) == 0
+    html = browser.post("/check-in", {**CHECK_IN, "urges": "7"}).get_data(as_text=True)
+    assert 'value="4" required checked' in " ".join(html.split())
+
+
 # ---- Communities and counts
 
 
@@ -188,6 +225,18 @@ def test_joining_counting_and_breaking_character(make_user, app, get_user):
     assert "0 days in character" in browser.text("/categories/alcohol")
     browser.post("/categories/alcohol/leave")
     assert "Join and start my count" in browser.text("/categories/alcohol")
+
+
+def test_home_is_a_landing_page_until_you_log_in_and_medals_follow_the_count(make_user, visitor, app):
+    assert "Sign up free" in visitor().text("/")
+    browser = make_user("alice")
+    browser.post("/categories/alcohol/join")
+    with app.app_context():
+        db.session.scalar(db.select(Membership)).started_on = date.today() - timedelta(days=12)
+        db.session.commit()
+    html = browser.text("/")
+    assert "Sign up free" not in html and "12 days in character. 2 more until your 2 weeks medal." in html
+    assert html.count("medal-item earned") == 2 and html.count("medal-item next") == 1
 
 
 def test_unknown_pages_are_404s(make_user, visitor):

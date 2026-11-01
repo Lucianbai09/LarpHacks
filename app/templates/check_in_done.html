@@ -1,0 +1,44 @@
+{% extends "base.html" %}
+{% from "_forms.html" import post_button %}
+{% from "_ui.html" import audience_icon, icon %}
+
+{% block title %}Checked in · Cove{% endblock %}
+
+{% block content %}
+  <section class="card done-hero">
+    <div class="done-icon">{{ icon("tick") }}</div>
+    <h1>{{ "Another day in character. Nice work." if entry.on_track else "Thanks for being honest." }}</h1>
+    <p class="muted lead mt-8">{{ "See you tomorrow." if entry.on_track else "A slip doesn't erase your progress. Check in again tomorrow." }}</p>
+  </section>
+
+  <section class="card">
+    <div class="card-head">
+      <h2 class="h2">Today's check-in</h2>
+      <a class="btn btn-ghost btn-sm" href="{{ url_for('main.check_in', edit=1) }}">{{ icon("pen") }}Edit</a>
+    </div>
+    <div class="stats mt-16">
+      <div class="stat"><p class="stat-label">Mood</p><p class="stat-value stat-sm">{{ entry.mood_label }}</p></div>
+      <div class="stat"><p class="stat-label">Urges</p><p class="stat-value stat-sm">{{ entry.urges_label }}</p></div>
+      <div class="stat"><p class="stat-label">In character</p><p class="stat-value stat-sm">{{ "Yes" if entry.on_track else "No" }}</p></div>
+    </div>
+    {% if entry.trigger %}<p class="mt-16"><span class="strong">Hardest today:</span> {{ entry.trigger_label }}</p>{% endif %}
+    <p class="privacy mt-16">{{ audience_icon(entry.audience) }}<span>Who can see this: {{ visibilities[entry.audience] }}</span></p>
+  </section>
+
+  {% if not entry.on_track and memberships %}
+    <section class="card">
+      <h2 class="h2">Want to restart a count?</h2>
+      <p class="muted mt-8">It's up to you. Your counts stay as they are unless you restart them.</p>
+      <div class="btn-row mt-16">
+        {% for membership in memberships %}
+          {{ post_button(url_for('main.restart', slug=membership.category.slug), 'I broke character in ' ~ membership.category.name, confirm='Restart your count at day 0?') }}
+        {% endfor %}
+      </div>
+    </section>
+  {% endif %}
+
+  <div class="btn-row">
+    <a class="btn btn-primary" href="{{ url_for('main.progress') }}">{{ icon("chart") }}See your progress</a>
+    <a class="btn btn-secondary" href="{{ url_for('main.write', report_type='reflection') }}">{{ icon("camera") }}Add a photo or reflection</a>
+  </div>
+{% endblock %}

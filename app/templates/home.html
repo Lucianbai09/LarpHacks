@@ -1,15 +1,61 @@
 {% extends "base.html" %}
+{% from "_ui.html" import days_card, icon, week_dots %}
 
 {% block content %}
-  <h1>LarpHacks</h1>
-  <p>Larp as someone who already quit, until it's true.</p>
+  <div class="page-head">
+    <div>
+      <h1>Hi, {{ current_user.username }}</h1>
+      <p class="muted">{{ today.strftime("%A, %B") }} {{ today.day }}</p>
+    </div>
+  </div>
 
-  <p>
-    {% for category in categories %}
-      <a href="{{ url_for('main.category_feed', slug=category.slug) }}">{{ category.name }}</a>{% if not loop.last %} · {% endif %}
-    {% endfor %}
-  </p>
+  <section class="card" aria-labelledby="week-title">
+    <div class="card-head">
+      <h2 class="h2" id="week-title">Last 7 days</h2>
+      {% if week_summary %}<p class="muted small">{{ week_summary.on_track }} of {{ week_summary.count }} days in character</p>{% endif %}
+    </div>
+    {{ week_dots(week, today) }}
+    <div class="divider"></div>
+    {% if check_in %}
+      <div class="done-row">
+        <span class="done-badge">{{ icon("tick") }}</span>
+        <div class="grow">
+          <p class="strong">You checked in today</p>
+          <p class="muted small">{{ check_in.mood_label }} mood · Urges: {{ check_in.urges_label|lower }} · {{ "In character" if check_in.on_track else "Slipped" }}</p>
+        </div>
+      </div>
+      <a class="btn btn-ghost btn-block mt-16" href="{{ url_for('main.progress') }}">{{ icon("chart") }}See your progress</a>
+    {% else %}
+      <a class="btn btn-primary btn-block" href="{{ url_for('main.check_in') }}">{{ icon("check") }}Check in for today</a>
+      <p class="muted small center mt-8">A few taps, no typing · about 20 seconds</p>
+    {% endif %}
+  </section>
 
-  <h2>Everything</h2>
-  {% include "_feed.html" %}
+  {% for membership in current_user.memberships %}
+    {{ days_card(membership) }}
+  {% else %}
+    <section class="card empty">
+      <div class="empty-icon">{{ icon("people") }}</div>
+      <h2 class="h2">Join what you're quitting</h2>
+      <p class="muted mt-8">Joining a community starts your count.</p>
+      <a class="btn btn-primary mt-20" href="{{ url_for('main.category_list') }}">Find your community</a>
+    </section>
+  {% endfor %}
+
+  <a class="btn btn-secondary btn-block" href="{{ url_for('main.write') }}">{{ icon("pen") }}Write a post or reflection</a>
+
+  {% if circle_requests %}
+    <section class="card">
+      <div class="person-row">
+        <div class="grow">
+          <h2 class="h2">{{ circle_requests }} circle request{{ "" if circle_requests == 1 else "s" }}</h2>
+          <p class="muted small">Someone wants to read your circle posts and share theirs.</p>
+        </div>
+        <a class="btn btn-secondary btn-sm" href="{{ url_for('main.circle') }}">See</a>
+      </div>
+    </section>
+  {% endif %}
+
+  <div class="section-head"><h2 class="section-title">Latest</h2></div>
+  <div class="stack">{% include "_feed.html" %}</div>
 {% endblock %}

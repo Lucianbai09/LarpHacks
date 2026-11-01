@@ -1,65 +1,92 @@
 {% extends "base.html" %}
 {% from "_forms.html" import badge, post_button %}
+{% from "_ui.html" import avatar, days_card, icon %}
 
-{% block title %}{{ user.username }} · LarpHacks{% endblock %}
+{% block title %}{{ user.username }} · Cove{% endblock %}
 
 {% block content %}
-  <h1>{{ user.username }}{{ badge(user) }}</h1>
-  <p>Larping since {{ user.created_at.strftime("%b %d, %Y") }}</p>
+  <section class="card">
+    <div class="person-row">
+      {{ avatar(user, "lg") }}
+      <div class="grow">
+        <h1>{{ user.username }}{{ badge(user) }}</h1>
+        <p class="muted">Joined Cove {{ user.created_at.strftime("%b %d, %Y") }}</p>
+      </div>
+    </div>
 
-  {% if is_me %}
-    <p>
-      <a href="{{ url_for('main.circle') }}">Manage your circle</a>
-      · <a href="{{ url_for('auth.account') }}">Account settings</a>
-    </p>
-  {% elif can_link %}
-    <p>
-      {% if not link %}
-        {{ post_button(url_for('main.circle_add'), 'Add to circle', username=user.username) }}
-      {% elif link.accepted %}
-        In your circle.
-        {{ post_button(url_for('main.circle_remove'), 'Remove from circle', username=user.username) }}
-      {% elif link.addressee_id == current_user.id %}
-        Wants to join your circle.
-        {{ post_button(url_for('main.circle_add'), 'Accept', username=user.username) }}
-        {{ post_button(url_for('main.circle_remove'), 'Decline', username=user.username) }}
-      {% else %}
-        Circle request sent.
-        {{ post_button(url_for('main.circle_remove'), 'Cancel', username=user.username) }}
+    <div class="stats mt-20">
+      <div class="stat"><p class="stat-label">Entries</p><p class="stat-value">{{ posts|length }}</p></div>
+      {% if memberships %}
+        <div class="stat"><p class="stat-label">Communities</p><p class="stat-value">{{ memberships|length }}</p></div>
+        <div class="stat"><p class="stat-label">Best count</p><p class="stat-value">{{ memberships|map(attribute="days")|max }}</p></div>
       {% endif %}
-    </p>
-  {% endif %}
+    </div>
 
-  {% if memberships %}
-    <h2>Communities</h2>
-    <ul>
-      {% for membership in memberships %}
-        <li>
-          <a href="{{ url_for('main.category_feed', slug=membership.category.slug) }}">{{ membership.category.name }}</a>
-          · {{ membership.days_label }}
-        </li>
-      {% endfor %}
-    </ul>
-  {% elif is_me %}
-    <h2>Communities</h2>
-    <p>None yet. <a href="{{ url_for('main.category_list') }}">Join what you're quitting.</a></p>
-  {% endif %}
+    {% if is_me %}
+      <div class="btn-row mt-20">
+        <a class="btn btn-ghost btn-sm" href="{{ url_for('main.progress') }}">{{ icon("chart") }}Your progress</a>
+        <a class="btn btn-ghost btn-sm" href="{{ url_for('main.circle') }}">Manage your circle</a>
+        <a class="btn btn-ghost btn-sm" href="{{ url_for('auth.account') }}">Account settings</a>
+      </div>
+    {% elif can_link %}
+      <div class="divider"></div>
+      {% if not link %}
+        <div class="btn-row">{{ post_button(url_for('main.circle_add'), 'Add to circle', look="btn btn-primary btn-sm", icon_name="plus", username=user.username) }}</div>
+      {% elif link.accepted %}
+        <div class="list-row">
+          <p class="grow strong">In your circle.</p>
+          {{ post_button(url_for('main.circle_remove'), 'Remove from circle', username=user.username) }}
+        </div>
+      {% elif link.addressee_id == current_user.id %}
+        <div class="list-row">
+          <p class="grow strong">Wants to join your circle.</p>
+          <div class="row-actions">
+            {{ post_button(url_for('main.circle_add'), 'Accept', look="btn btn-primary btn-sm", username=user.username) }}
+            {{ post_button(url_for('main.circle_remove'), 'Decline', username=user.username) }}
+          </div>
+        </div>
+      {% else %}
+        <div class="list-row">
+          <p class="grow strong">Circle request sent.</p>
+          {{ post_button(url_for('main.circle_remove'), 'Cancel', username=user.username) }}
+        </div>
+      {% endif %}
+    {% endif %}
+  </section>
 
-  <h2>Entries</h2>
-  {% include "_feed.html" %}
+  {% for membership in memberships %}
+    {{ days_card(membership) }}
+  {% else %}
+    {% if is_me %}
+      <section class="card empty">
+        <div class="empty-icon">{{ icon("people") }}</div>
+        <h2 class="h2">No communities yet</h2>
+        <a class="btn btn-primary mt-20" href="{{ url_for('main.category_list') }}">Join what you're quitting</a>
+      </section>
+    {% endif %}
+  {% endfor %}
+
+  <div class="section-head"><h2 class="section-title">Entries</h2></div>
+  <div class="stack">{% include "_feed.html" %}</div>
 
   {% if is_me %}
-    <h2>Comments you left</h2>
-    {% for comment in comments %}
-      <p>
-        <a href="{{ url_for('main.post_detail', post_id=comment.post_id) }}">On {{ comment.post.author.username }}'s post</a>:
-        <span class="post-body">{{ comment.body }}</span>
-      </p>
-    {% else %}
-      <p>None yet.</p>
-    {% endfor %}
+    <section class="card">
+      <h2 class="h2">Comments you left</h2>
+      <ul class="list mt-8">
+        {% for comment in comments %}
+          <li class="list-row">
+            <div class="grow">
+              <a class="strong" href="{{ url_for('main.post_detail', post_id=comment.post_id) }}">On {{ comment.post.author.username }}'s post</a>
+              <p class="post-body">{{ comment.body }}</p>
+            </div>
+          </li>
+        {% else %}
+          <li class="list-row muted">None yet.</li>
+        {% endfor %}
+      </ul>
+    </section>
 
-    <h2>Posts you believed</h2>
-    {% with posts=believed %}{% include "_feed.html" %}{% endwith %}
+    <div class="section-head"><h2 class="section-title">Posts you believed</h2></div>
+    <div class="stack">{% with posts=believed %}{% include "_feed.html" %}{% endwith %}</div>
   {% endif %}
 {% endblock %}

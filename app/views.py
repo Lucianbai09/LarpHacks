@@ -139,8 +139,9 @@ def nav_counts():
 def announce_new_badges(response):
     # Everything that can earn a badge is a POST in this file, so this is the one place to check.
     if request.method == "POST" and current_user.is_authenticated and response.status_code < 400:
-        for name in award_badges(current_user):
-            flash(f"New badge: {name}")
+        for badge in award_badges(current_user):
+            # The whole badge, so the banner can show its medal.
+            flash(badge, "badge")
     return response
 
 
@@ -428,7 +429,7 @@ def believe(post_id):
     db.session.commit()
     # The page's script asks for this instead of a redirect, so pressing the button never moves the page.
     if request.headers.get("X-Requested-With") == "fetch":
-        return {"believed": not reaction, "believers": len(post.reactions), "badges": award_badges(current_user)}
+        return {"believed": not reaction, "believers": len(post.reactions), "badges": [badge["name"] for badge in award_badges(current_user)]}
     return redirect(f"{back(url_for('main.home'))}#post-{post.id}")
 
 
@@ -514,11 +515,12 @@ def pledge():
 def join_only(categories):
     """Makes someone's communities exactly these, keeping the counts of the ones they stay in."""
     keep = {category.id for category in categories}
-    for membership in current_user.memberships:
+    have = my_memberships()
+    for membership in have.values():
         if membership.category_id not in keep:
             db.session.delete(membership)
     for category in categories:
-        if category.id not in my_memberships():
+        if category.id not in have:
             db.session.add(Membership(user_id=current_user.id, category_id=category.id))
 
 

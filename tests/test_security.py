@@ -461,5 +461,5 @@ def test_render_database_urls_get_the_right_driver(monkeypatch, given):
 
 def test_importing_run_does_not_start_a_dev_server():
     text = (APP_DIR.parent / "run.py").read_text(encoding="utf-8")
-    assert re.search(r'if __name__ == "__main__":\s+(#.*\s+)?app\.run\(debug=True', text)
+    assert text.index('if __name__ == "__main__":') < text.index("app.run(debug=True")
     assert PASSWORD not in text

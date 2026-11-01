@@ -36,8 +36,5 @@
     </section>
   {% endif %}
 
-  <div class="btn-row">
-    <a class="btn btn-primary" href="{{ url_for('main.progress') }}">{{ icon("chart") }}See your progress</a>
-    <a class="btn btn-secondary" href="{{ url_for('main.write', report_type='reflection') }}">{{ icon("camera") }}Add a photo or reflection</a>
-  </div>
+  <a class="btn btn-primary btn-block" href="{{ url_for('main.progress') }}">{{ icon("chart") }}See your progress</a>
 {% endblock %}

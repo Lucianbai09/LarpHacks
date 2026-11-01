@@ -1,9 +1,14 @@
-// Forms with a data-confirm message ask before submitting.
+// Forms with a data-confirm message ask in Cove's own box before submitting.
 document.addEventListener("submit", (event) => {
-  const message = event.target.dataset.confirm;
-  if (message && !window.confirm(message)) {
-    event.preventDefault();
-  }
+  const form = event.target;
+  const message = form.dataset.confirm;
+  const box = document.getElementById("confirm");
+  if (!message || !box) return;
+  event.preventDefault();
+  box.querySelector(".confirm-message").textContent = message;
+  box.returnValue = "";
+  box.addEventListener("close", () => box.returnValue === "ok" && form.submit(), { once: true });
+  box.showModal();
 });
 
 // The eye button in a password field shows what you typed.

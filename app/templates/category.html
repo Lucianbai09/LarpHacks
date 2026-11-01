@@ -15,12 +15,6 @@
           {{ post_button(url_for('main.restart', slug=category.slug), 'I broke character', confirm='Restart your count at day 0?') }}
           {{ post_button(url_for('main.leave', slug=category.slug), 'Leave', confirm='Leave and lose your count?') }}
         </div>
-      {% elif current_user.is_authenticated %}
-        <section class="card">
-          <h2 class="h2">“{{ category.pledge }}”</h2>
-          <p class="muted mt-8">Say it as if it's already true. Joining starts your count from today.</p>
-          <div class="btn-row mt-16">{{ post_button(url_for('main.join', slug=category.slug), 'Join and start my count', look="btn btn-primary") }}</div>
-        </section>
       {% endif %}
       <a class="btn btn-primary btn-block share-btn" href="{{ url_for('main.write', category=category.slug) }}">{{ icon("pen") }}Write in {{ category.name }}</a>
       {% include "_communities.html" %}

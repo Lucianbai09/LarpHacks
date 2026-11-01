@@ -63,10 +63,9 @@ def test_seed_refuses_rather_than_mixing_with_a_real_account(app, count, visitor
     assert count(User) == 1 and count(Post) == 0, "nothing half-added"
 
 
-def test_clearing_removes_real_comments_on_demo_posts_but_not_real_posts(app, seeded, make_user, post_id, count):
+def test_clearing_removes_real_comments_on_demo_posts_but_not_real_posts(app, seeded, make_user, count):
     alice = make_user("alice")
     alice.write("real-post")
-    target = post_id("Ordered a soda") or None
     with app.app_context():
         target = db.session.scalar(db.select(Post.id).where(Post.body.like("%Ordered a soda%")))
     alice.post(f"/posts/{target}/comment", {"body": "on a demo post"})

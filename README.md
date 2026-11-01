@@ -145,7 +145,7 @@ Your pledge is visible to you and your circle, unless you turn that off. Achieve
 
 ## Changing things
 
-**Add a category:** add a line to `CATEGORIES` in `app/models.py`, with an icon name from `_icons.html`, then run `flask init-db`. Pages pick it up from the database.
+**Add a category:** add a line to `CATEGORIES` in `app/models.py`, with an icon name from `_icons.html`, then restart with F5, which adds it to the database. On Render, every start does the same.
 
 **Change the check-in questions:** they're in `app/templates/check_in.html`, and the 1 to 10 scale is at the top of `app/models.py`.
 
@@ -160,7 +160,7 @@ Do this once the tables are final, because there are no migrations.
 1. Push the repo to GitHub. `.env` stays out of git, so your local password doesn't go with it.
 2. In the Render dashboard, choose **New > Blueprint**, pick the repo, and apply it. Paste your email script URL and Turnstile keys when it asks. Without the email URL, confirmation and password reset emails don't send. Without the keys, the captcha is off. Everything else still works.
 
-`render.yaml` creates the site and its Postgres database, generates `SECRET_KEY`, and connects them. New tables, categories and the demo accounts are added each time the site starts. Before real people use the site, remove `flask seed-demo` from `startCommand` and delete the demo accounts.
+`render.yaml` creates the site and its Postgres database, generates `SECRET_KEY`, and connects them. New tables and categories are added each time the site starts, and the demo accounts are wiped and re-seeded so their days stay current. `TZ` sets which time zone counts as "today", so change it if you're demoing outside Eastern time. Before real people use the site, remove `flask clear-demo && flask seed-demo` from `startCommand` and delete the demo accounts.
 
 On the free plan:
 

@@ -8,7 +8,7 @@ from sqlalchemy.sql import func
 
 from . import db, login_manager
 
-# Adding a habit: add a line here, then run `flask init-db`.
+# Adding a habit: add a line here, then restart the site (F5 adds it to the database).
 # Slug, name, an icon from _icons.html, and the end of "I'm someone who doesn't ...".
 CATEGORIES = [
     ("scrolling", "Scrolling", "phone", "doomscroll"),

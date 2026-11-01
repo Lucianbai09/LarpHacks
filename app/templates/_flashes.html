@@ -1,3 +1,8 @@
-{% for message in get_flashed_messages() %}
-  <p class="form-msg" role="status"><span>{{ message }}</span></p>
+{% from "_ui.html" import medal %}
+{% for kind, message in get_flashed_messages(with_categories=true) %}
+  {% if kind == "badge" %}
+    <p class="form-msg badge-msg" role="status">{{ medal(none, message.tier, "earned", 0, message.icon, "fresh") }}<span>New badge: {{ message.name }}<span class="muted small block">{{ message.desc }}</span></span></p>
+  {% else %}
+    <p class="form-msg" role="status"><span>{{ message }}</span></p>
+  {% endif %}
 {% endfor %}

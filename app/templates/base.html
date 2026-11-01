@@ -15,6 +15,16 @@
 </head>
 <body>
   {% include "_icons.html" %}
+  <dialog class="confirm" id="confirm" aria-labelledby="confirm-message">
+    <form method="dialog">
+      {{ logo() }}
+      <p class="confirm-message" id="confirm-message"></p>
+      <div class="confirm-actions">
+        <button class="btn btn-ghost" value="cancel">Cancel</button>
+        <button class="btn btn-primary" value="ok">Yes</button>
+      </div>
+    </form>
+  </dialog>
   {% block body %}
     {% set here = request.endpoint %}
     {% set home_link = ("Home", url_for("main.home"), "home", here == "main.home") %}

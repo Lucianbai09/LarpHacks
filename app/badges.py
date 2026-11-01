@@ -61,24 +61,24 @@ def qualifying_badges(user):
 
 
 def new_badges(user):
-    """Adds any badges `user` has just qualified for, and returns their names. The caller commits."""
+    """Adds any badges `user` has just qualified for, and returns them. The caller commits."""
     have = set(db.session.scalars(db.select(EarnedBadge.badge).filter_by(user_id=user.id)))
     qualifying = qualifying_badges(user)
     earned = [achievement for achievement in ACHIEVEMENTS if achievement["id"] in qualifying - have]
     db.session.add_all(EarnedBadge(user_id=user.id, badge=achievement["id"]) for achievement in earned)
-    return [achievement["name"] for achievement in earned]
+    return earned
 
 
 def award_badges(user):
-    names = new_badges(user)
-    if names:
+    earned = new_badges(user)
+    if earned:
         try:
             db.session.commit()
         except IntegrityError:
             # A double click got there first, and that request announces them.
             db.session.rollback()
             return []
-    return names
+    return earned
 
 
 def badge_summary(user):

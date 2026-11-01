@@ -121,7 +121,7 @@ def test_setup_steps_join_communities_and_save_the_pledge_and_audience(make_user
     assert alice.c.get("/setup/9").status_code == 404
 
     alice.post("/setup/1", {"habit": ["gaming"]}, token_from="/setup/1")
-    assert "1 day" not in alice.text("/categories/alcohol") and "Join and start my count" in alice.text("/categories/alcohol")
+    assert "1 day" not in alice.text("/categories/alcohol") and 'action="/categories/alcohol/join"' in alice.text("/categories/alcohol")
 
 
 def test_a_pledge_is_only_shown_to_you_and_your_circle(make_user, visitor):
@@ -316,7 +316,7 @@ def test_a_shared_check_in_only_names_and_goes_into_what_you_ticked(make_user, v
 
 def test_joining_counting_and_breaking_character(make_user, app, get_user):
     browser = make_user("alice")
-    assert "Join and start my count" in browser.text("/categories/alcohol")
+    assert 'action="/categories/alcohol/join"' in browser.text("/categories/alcohol")
     browser.post("/categories/alcohol/join", {"next": "/categories"})
     assert "0 days in character" in browser.text("/categories")
     browser.post("/categories/alcohol/join", {"next": "/categories"})
@@ -334,7 +334,7 @@ def test_joining_counting_and_breaking_character(make_user, app, get_user):
     browser.post("/categories/alcohol/restart", {"next": "/categories/alcohol"})
     assert "0 days in character" in browser.text("/categories/alcohol")
     browser.post("/categories/alcohol/leave")
-    assert "Join and start my count" in browser.text("/categories/alcohol")
+    assert 'action="/categories/alcohol/join"' in browser.text("/categories/alcohol")
 
 
 def test_home_is_a_landing_page_until_you_log_in_and_medals_follow_the_count(make_user, visitor, app):

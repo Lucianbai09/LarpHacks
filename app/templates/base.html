@@ -70,6 +70,7 @@
           <a class="tab" href="{{ url }}"{% if active %} aria-current="page"{% endif %}><span class="tab-ic">{{ icon(icon_name) }}</span>{{ label }}{% if label == "Check in" and not checked_in_today %}<span class="tab-dot" aria-hidden="true"></span><span class="sr-only">, not done today</span>{% endif %}</a>
         {% endfor %}
       </nav>
+      <div id="toast" class="toast" role="status" aria-live="polite"></div>
     </div>
   {% endblock %}
 </body>

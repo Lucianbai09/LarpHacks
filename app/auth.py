@@ -110,8 +110,8 @@ def register():
             else:
                 login_user(user, remember=True)
                 send_confirmation(user)
-                flash("You're in. Join what you're quitting to start your count, and check your email for a confirmation link.")
-                return redirect(url_for("main.category_list"))
+                flash("You're in. Check your email for a confirmation link.")
+                return redirect(url_for("main.setup", step=1))
 
     page = render_template("register.html", username=username, email=email, error=error)
     return page, 400 if error else 200

@@ -1,0 +1,65 @@
+{% extends "base.html" %}
+{% from "_forms.html" import audience_options %}
+{% from "_ui.html" import icon %}
+
+{% block title %}Set up · Cove{% endblock %}
+
+{% block body %}
+  <main class="onb" id="main">
+    <form method="post">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
+      <div class="onb-top">
+        <a class="icon-btn" href="{{ url_for('main.setup', step=step - 1) if step > 1 else url_for('main.home') }}" aria-label="Back">{{ icon("back") }}</a>
+        <div class="grow">
+          <p class="small strong">Step {{ step }} of {{ total }}</p>
+          <progress class="meter mt-4" value="{{ step }}" max="{{ total }}" aria-label="Setup progress"></progress>
+        </div>
+      </div>
+
+      <div class="onb-body">
+        {% include "_flashes.html" %}
+        {% if error %}<p class="form-msg" role="alert">{{ icon("alert") }}<span>{{ error }}</span></p>{% endif %}
+
+        {% if step == 1 %}
+          <h1>What do you want to quit?</h1>
+          <p class="muted lead">Choose all that apply. You can change this later.</p>
+          <fieldset>
+            <legend class="sr-only">Habits</legend>
+            <div class="options">
+              {% for category in categories %}
+                <label class="option">
+                  <input class="sr-only" type="checkbox" name="habit" value="{{ category.slug }}" {% if category.slug in (ticked if ticked is not none else joined) %}checked{% endif %}>
+                  <span class="check-ind" aria-hidden="true">{{ icon("tick") }}</span>
+                  {{ icon(category.icon) }}
+                  <span class="option-title">{{ category.name }}</span>
+                </label>
+              {% endfor %}
+            </div>
+          </fieldset>
+          {% if joined %}<p class="muted small">Unticking one leaves that community and loses its count.</p>{% endif %}
+        {% elif step == 2 %}
+          <h1>Make your pledge</h1>
+          <p class="muted lead">Say it as if it's already true. From today, you play the part.</p>
+          <div>
+            <label class="field-label" for="pledge-text">Your pledge</label>
+            <textarea class="textarea" id="pledge-text" name="pledge" rows="3" maxlength="{{ max_pledge_length }}">{{ pledge_text }}</textarea>
+          </div>
+          <label class="card switch-row">
+            <span class="grow"><span class="strong block">Show to my circle</span><span class="muted small block">People in your circle can see it and cheer you on</span></span>
+            <input type="checkbox" role="switch" class="switch" name="shared" {% if pledge_shared %}checked{% endif %}>
+          </label>
+        {% else %}
+          <h1>Who can see your progress?</h1>
+          <p class="muted lead">This is what your check-ins and posts start on. You can change it on each one.</p>
+          <fieldset>
+            <legend class="sr-only">Who can see your progress</legend>
+            {{ audience_options(visibilities, request.form.get("visibility", current_user.default_audience or "circle")) }}
+          </fieldset>
+        {% endif %}
+      </div>
+
+      <div class="onb-foot"><button class="btn btn-primary btn-block">{{ "Finish setup" if step == total else "Continue" }}</button></div>
+    </form>
+  </main>
+{% endblock %}

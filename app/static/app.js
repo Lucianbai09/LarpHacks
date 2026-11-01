@@ -18,6 +18,66 @@ document.addEventListener("click", (event) => {
   toggle.querySelector("use").setAttribute("href", showing ? "#i-eye" : "#i-eye-off");
 });
 
+// Where a post goes: any number of communities, or Overall on its own.
+document.addEventListener("change", (event) => {
+  const box = event.target;
+  if (box.name !== "category") return;
+  const boxes = [...box.form.querySelectorAll('input[name="category"]')];
+  const overall = boxes.find((each) => each.value === "");
+  const communities = boxes.filter((each) => each !== overall);
+  if (box === overall) {
+    communities.forEach((each) => (each.checked = false));
+    overall.checked = true;
+  } else {
+    overall.checked = !communities.some((each) => each.checked);
+  }
+});
+
+function showToast(message) {
+  const toast = document.getElementById("toast");
+  toast.textContent = message;
+  toast.classList.add("show");
+  clearTimeout(showToast.timer);
+  showToast.timer = setTimeout(() => toast.classList.remove("show"), 3200);
+}
+
+// "I believe you" updates straight away and saves in the background, so the page never moves.
+// Every copy of the post on the page changes together, and the server's answer has the last word.
+function showBelief(action, believed, count) {
+  for (const button of document.querySelectorAll(".action-btn[aria-pressed]")) {
+    if (button.form.action !== action) continue;
+    button.setAttribute("aria-pressed", believed);
+    button.lastChild.textContent = `${believed ? "You believe this" : "I believe you"} (${count})`;
+  }
+}
+
+document.addEventListener("submit", async (event) => {
+  const form = event.target;
+  const button = form.querySelector(".action-btn[aria-pressed]");
+  if (!button) return;
+  event.preventDefault();
+  if (form.dataset.sending) return;
+  form.dataset.sending = "true";
+
+  const believed = button.getAttribute("aria-pressed") !== "true";
+  const count = Number(button.textContent.match(/\((\d+)\)/)[1]);
+  showBelief(form.action, believed, count + (believed ? 1 : -1));
+  try {
+    const response = await fetch(form.action, {
+      method: "POST",
+      body: new FormData(form),
+      headers: { "X-Requested-With": "fetch" },
+    });
+    const reply = await response.json();
+    showBelief(form.action, reply.believed, reply.believers);
+    if (reply.badges.length) showToast(`New badge: ${reply.badges.join(", ")}`);
+    delete form.dataset.sending;
+  } catch {
+    // Logged out, rate limited or offline. A normal submit shows what went wrong.
+    form.submit();
+  }
+});
+
 // A photo picked on the Write page shows a preview, and can be removed before posting.
 const photoInput = document.querySelector("[data-photo-input]");
 if (photoInput) {

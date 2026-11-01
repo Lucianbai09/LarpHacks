@@ -1,5 +1,5 @@
 {% extends "base.html" %}
-{% from "_ui.html" import days_card, icon, week_dots %}
+{% from "_ui.html" import badge_medal, days_card, icon, week_dots %}
 
 {% block content %}
   <div class="page-head">
@@ -21,18 +21,18 @@
         <span class="done-badge">{{ icon("tick") }}</span>
         <div class="grow">
           <p class="strong">You checked in today</p>
-          <p class="muted small">{{ check_in.mood_label }} mood · Urges: {{ check_in.urges_label|lower }} · {{ "In character" if check_in.on_track else "Slipped" }}</p>
+          <p class="muted small">Feeling {{ check_in.mood_label }} · In character: {{ check_in.larped_label }}</p>
         </div>
       </div>
       <a class="btn btn-ghost btn-block mt-16" href="{{ url_for('main.progress') }}">{{ icon("chart") }}See your progress</a>
     {% else %}
       <a class="btn btn-primary btn-block" href="{{ url_for('main.check_in') }}">{{ icon("check") }}Check in for today</a>
-      <p class="muted small center mt-8">A few taps, no typing · about 20 seconds</p>
+      <p class="muted small center mt-8">Three quick questions, no typing</p>
     {% endif %}
   </section>
 
   {% for membership in current_user.memberships %}
-    {{ days_card(membership) }}
+    {{ days_card(membership, current_user.pledge if loop.first else none) }}
   {% else %}
     <section class="card empty">
       <div class="empty-icon">{{ icon("people") }}</div>
@@ -55,6 +55,25 @@
       </div>
     </section>
   {% endif %}
+
+  <section class="card" aria-labelledby="badges-title">
+    <div class="card-head">
+      <h2 class="h2" id="badges-title">Badges</h2>
+      <p class="muted small">{{ badges.count }} of {{ badges.total }} earned</p>
+    </div>
+    {% if badges.latest %}
+      <div class="latest mt-16">
+        {{ badge_medal(badges.latest, "fresh" if badges.latest.earned_on == today else "") }}
+        <div class="grow">
+          <p class="strong">Latest: {{ badges.latest.name }}</p>
+          <p class="muted small">{{ badges.latest.desc }}</p>
+        </div>
+      </div>
+    {% else %}
+      <p class="muted mt-8">Do your first check-in to earn your first badge.</p>
+    {% endif %}
+    <a class="btn btn-ghost btn-block mt-16" href="{{ url_for('main.profile', username=current_user.username, _anchor='badges') }}">{{ icon("award") }}See all badges</a>
+  </section>
 
   <div class="section-head"><h2 class="section-title">Latest</h2></div>
   <div class="stack">{% include "_feed.html" %}</div>

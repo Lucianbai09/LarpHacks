@@ -1,4 +1,35 @@
-{% from "_ui.html" import icon %}
+{% from "_ui.html" import audience_icon, icon %}
+
+{# Checkboxes for where a post goes: any number of communities, or Overall on its own. app.js keeps them exclusive, and the server refuses both. #}
+{% macro community_boxes(categories, chosen) %}
+  <div class="chips">
+    <label class="chip">
+      <input class="sr-only" type="checkbox" name="category" value="" {% if not chosen|select|list %}checked{% endif %}>
+      <span class="check-ind" aria-hidden="true">{{ icon("tick") }}</span>{{ icon("sparkle") }}Overall
+    </label>
+    {% for category in categories %}
+      <label class="chip">
+        <input class="sr-only" type="checkbox" name="category" value="{{ category.slug }}" {% if category.slug in chosen %}checked{% endif %}>
+        <span class="check-ind" aria-hidden="true">{{ icon("tick") }}</span>{{ icon(category.icon) }}{{ category.name }}
+      </label>
+    {% endfor %}
+  </div>
+{% endmacro %}
+
+{# The three audiences, each explained. #}
+{% macro audience_options(visibilities, selected) %}
+  {% set notes = {"public": "Anyone, even without an account", "circle": "You and the people in your circle", "private": "Nobody else sees this"} %}
+  <div class="options">
+    {% for value, label in visibilities.items() %}
+      <label class="option">
+        <input class="sr-only" type="radio" name="visibility" value="{{ value }}" {% if selected == value %}checked{% endif %}>
+        <span class="radio-ind" aria-hidden="true"></span>
+        <span class="option-text"><span class="option-title">{{ label }}</span><span class="option-sub">{{ notes[value] }}</span></span>
+        {{ audience_icon(value) }}
+      </label>
+    {% endfor %}
+  </div>
+{% endmacro %}
 
 {# A one-click POST form that returns to the current page. Extra keyword arguments become hidden fields. #}
 {% macro post_button(url, label, confirm=none, look="btn btn-ghost btn-sm", icon_name=none, pressed=none) %}
@@ -12,10 +43,10 @@
   </form>
 {% endmacro %}
 
-{# Cloudflare's "are you a person" check. Shows nothing when no key is set. #}
+{# Cloudflare's "are you a person" check. Stays hidden unless Cloudflare wants a click, and is off when no key is set. #}
 {% macro captcha() %}
   {% if config.TURNSTILE_SITE_KEY %}
-    <div class="cf-turnstile" data-sitekey="{{ config.TURNSTILE_SITE_KEY }}"></div>
+    <div class="cf-turnstile" data-sitekey="{{ config.TURNSTILE_SITE_KEY }}" data-appearance="interaction-only"></div>
     <script src="https://challenges.cloudflare.com/turnstile/v0/api.js" async defer></script>
   {% endif %}
 {% endmacro %}

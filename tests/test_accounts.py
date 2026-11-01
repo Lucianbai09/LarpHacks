@@ -36,7 +36,7 @@ def test_register_keeps_typed_values_but_not_the_password(visitor):
 def test_register_creates_a_logged_in_account(visitor, get_user):
     browser = visitor()
     response = browser.register("Author", "Author@Mail.test", "aaaaaa")
-    assert response.status_code == 302 and response.headers["Location"] == "/categories"
+    assert response.status_code == 302 and response.headers["Location"] == "/setup/1"
     assert browser.logged_in()
     user = get_user("author")
     assert user.email == "author@mail.test"
@@ -296,7 +296,7 @@ def test_deleting_an_account_removes_only_what_was_theirs(make_user, visitor, ap
     bobby.post(f"/posts/{alices}/comment", {"body": "bobby on alice"})
     bobby.post(f"/posts/{alices}/believe", {"next": "/"})
     alice.post("/categories/alcohol/join")
-    alice.post("/check-in", {"mood": "4", "urges": "1", "on_track": "yes", "visibility": "private"})
+    alice.post("/check-in", {"mood": "8", "larped": ["alcohol"], "visibility": "private"})
     alice.add("bobby")
     bobby.add("alice")
 

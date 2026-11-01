@@ -4,6 +4,7 @@ from PIL import Image, ImageDraw
 from werkzeug.security import generate_password_hash
 
 from . import db
+from .badges import new_badges
 from .models import (
     TERMS_VERSION,
     Category,
@@ -43,23 +44,33 @@ CIRCLE_LINKS = [
     ("lena", "theo", False),
 ]
 
-# Days ago, mood, urges, stayed on track, hardest part. Today stays open, so a check-in can be done on stage.
+# Days ago, mood out of 10, and where they stayed in character. Today stays open, so a check-in can be done on stage.
 CHECK_INS = {
     "maya": [
-        (6, 2, 3, True, "stress"),
-        (5, 3, 2, True, "boredom"),
-        (4, 2, 4, False, "people"),
-        (3, 3, 2, True, "stress"),
-        (2, 3, 3, True, "stress"),
-        (1, 4, 1, True, "nothing"),
+        (6, 4, ["alcohol"]),
+        (5, 6, ["alcohol"]),
+        (4, 3, []),
+        (3, 6, ["alcohol"]),
+        (2, 5, ["alcohol"]),
+        (1, 8, ["alcohol"]),
     ],
-    "theo": [(3, 3, 2, True, "boredom"), (2, 4, 1, True, "nothing"), (1, 4, 1, True, "nothing")],
+    "theo": [(3, 6, ["gaming", "scrolling"]), (2, 7, ["gaming", "scrolling"]), (1, 8, ["gaming", "scrolling"])],
 }
 
 POSTS = [
     {
+        "author": "theo",
+        "communities": ["gaming", "scrolling"],
+        "report_type": "weekly",
+        "visibility": "public",
+        "days_ago": 2,
+        "body": "Same report for both of my communities, because it's the same problem. Less time on screens, more time asleep. The character is getting boring, and I love it.",
+        "comments": [],
+        "believers": ["lena", "priya"],
+    },
+    {
         "author": "priya",
-        "category": "scrolling",
+        "communities": ["scrolling"],
         "report_type": "reflection",
         "visibility": "public",
         "days_ago": 3,
@@ -70,17 +81,17 @@ POSTS = [
     },
     {
         "author": "theo",
-        "category": None,
+        "communities": ["gaming", "scrolling"],
         "report_type": "checkin",
         "visibility": "circle",
         "days_ago": 1,
-        "body": "Feeling good. Urges: mild. Stayed in character.",
+        "body": "Feeling 8/10. Stayed in character: Gaming, Scrolling.",
         "comments": [],
         "believers": ["maya"],
     },
     {
         "author": "jonas",
-        "category": "alcohol",
+        "communities": ["alcohol"],
         "report_type": "monthly",
         "visibility": "public",
         "days_ago": 30,
@@ -90,7 +101,7 @@ POSTS = [
     },
     {
         "author": "theo",
-        "category": "gaming",
+        "communities": ["gaming"],
         "report_type": "monthly",
         "visibility": "public",
         "days_ago": 20,
@@ -100,7 +111,7 @@ POSTS = [
     },
     {
         "author": "priya",
-        "category": "scrolling",
+        "communities": ["scrolling"],
         "report_type": "weekly",
         "visibility": "public",
         "days_ago": 14,
@@ -110,7 +121,7 @@ POSTS = [
     },
     {
         "author": "jonas",
-        "category": "alcohol",
+        "communities": ["alcohol"],
         "report_type": "weekly",
         "visibility": "public",
         "days_ago": 9,
@@ -120,7 +131,7 @@ POSTS = [
     },
     {
         "author": "maya",
-        "category": "alcohol",
+        "communities": ["alcohol"],
         "report_type": "weekly",
         "visibility": "public",
         "days_ago": 6,
@@ -130,7 +141,7 @@ POSTS = [
     },
     {
         "author": "lena",
-        "category": "gaming",
+        "communities": ["gaming"],
         "report_type": "daily",
         "visibility": "public",
         "days_ago": 5,
@@ -140,7 +151,7 @@ POSTS = [
     },
     {
         "author": "priya",
-        "category": "scrolling",
+        "communities": ["scrolling"],
         "report_type": "daily",
         "visibility": "public",
         "days_ago": 4,
@@ -150,7 +161,7 @@ POSTS = [
     },
     {
         "author": "theo",
-        "category": "gaming",
+        "communities": ["gaming"],
         "report_type": "daily",
         "visibility": "circle",
         "days_ago": 3,
@@ -160,7 +171,7 @@ POSTS = [
     },
     {
         "author": "jonas",
-        "category": "alcohol",
+        "communities": ["alcohol"],
         "report_type": "daily",
         "visibility": "circle",
         "days_ago": 3,
@@ -170,7 +181,7 @@ POSTS = [
     },
     {
         "author": "maya",
-        "category": "alcohol",
+        "communities": ["alcohol"],
         "report_type": "daily",
         "visibility": "circle",
         "days_ago": 2,
@@ -180,7 +191,7 @@ POSTS = [
     },
     {
         "author": "priya",
-        "category": None,
+        "communities": [],
         "report_type": "post",
         "visibility": "public",
         "days_ago": 2,
@@ -190,7 +201,7 @@ POSTS = [
     },
     {
         "author": "sam",
-        "category": "scrolling",
+        "communities": ["scrolling"],
         "report_type": "daily",
         "visibility": "public",
         "days_ago": 1,
@@ -200,7 +211,7 @@ POSTS = [
     },
     {
         "author": "lena",
-        "category": "gaming",
+        "communities": ["gaming"],
         "report_type": "weekly",
         "visibility": "public",
         "days_ago": 1,
@@ -210,7 +221,7 @@ POSTS = [
     },
     {
         "author": "theo",
-        "category": "scrolling",
+        "communities": ["scrolling"],
         "report_type": "post",
         "visibility": "public",
         "days_ago": 1,
@@ -220,7 +231,7 @@ POSTS = [
     },
     {
         "author": "maya",
-        "category": "alcohol",
+        "communities": ["alcohol"],
         "report_type": "daily",
         "visibility": "private",
         "days_ago": 1,
@@ -230,7 +241,7 @@ POSTS = [
     },
     {
         "author": "priya",
-        "category": "scrolling",
+        "communities": ["scrolling"],
         "report_type": "daily",
         "visibility": "private",
         "days_ago": 1,
@@ -240,7 +251,7 @@ POSTS = [
     },
     {
         "author": "sam",
-        "category": None,
+        "communities": [],
         "report_type": "post",
         "visibility": "public",
         "days_ago": 0,
@@ -307,7 +318,7 @@ def seed():
     for item in POSTS:
         post = Post(
             author=users[item["author"]],
-            category=categories[item["category"]] if item["category"] else None,
+            categories=[categories[slug] for slug in item["communities"]],
             report_type=item["report_type"],
             visibility=item["visibility"],
             body=item["body"],
@@ -320,17 +331,19 @@ def seed():
         db.session.add(post)
 
     for username, check_ins in CHECK_INS.items():
-        for days_ago, mood, urges, on_track, trigger in check_ins:
+        for days_ago, mood, larped in check_ins:
             db.session.add(
                 CheckIn(
                     user_id=users[username].id,
                     day=date.today() - timedelta(days=days_ago),
                     mood=mood,
-                    urges=urges,
-                    on_track=on_track,
-                    trigger=trigger,
+                    on_track=len(larped) == len(USERS[username]),
+                    larped=[categories[slug] for slug in larped],
                 )
             )
+
+    for user in users.values():
+        new_badges(user)
 
     # One commit, so a failure anywhere above leaves nothing half-added.
     db.session.commit()

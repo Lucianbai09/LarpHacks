@@ -32,16 +32,8 @@ WRITE_TYPES = {
 # A shared daily check-in becomes a post of its own type.
 REPORT_TYPES = {**WRITE_TYPES, "checkin": "Check-in"}
 
-# The answers on the daily check-in.
-MOODS = {1: "Awful", 2: "Low", 3: "Okay", 4: "Good", 5: "Great"}
-URGES = {0: "None", 1: "Mild", 2: "Some", 3: "Strong", 4: "Intense"}
-TRIGGERS = {
-    "stress": "Stress",
-    "boredom": "Boredom",
-    "people": "Other people",
-    "tired": "Being tired",
-    "nothing": "Nothing today",
-}
+# The scale for "how are you feeling today?" on the daily check-in.
+MOODS = range(1, 11)
 
 VISIBILITIES = {
     "public": "Community",
@@ -68,6 +60,20 @@ class User(UserMixin, db.Model):
     created_at = db.Column(db.DateTime(timezone=True), server_default=func.now(), nullable=False)
 
     memberships = db.relationship("Membership")
+    profile = db.relationship("Profile", uselist=False)
+
+    @property
+    def pledge(self):
+        written = self.profile.pledge if self.profile else None
+        return written or pledge_for(membership.category for membership in self.memberships)
+
+    @property
+    def pledge_shared(self):
+        return self.profile.pledge_shared if self.profile else True
+
+    @property
+    def default_audience(self):
+        return self.profile.audience if self.profile else None
 
     @property
     def password_fingerprint(self):
@@ -89,6 +95,17 @@ def load_user(session_id):
     return user if user and user.password_fingerprint == fingerprint else None
 
 
+class Profile(db.Model):
+    """What someone chose in the setup steps. Without a row, they just get the defaults."""
+
+    user_id = db.Column(db.ForeignKey("users.id", ondelete="CASCADE"), primary_key=True)
+    # NULL means use the suggested pledge, which follows the communities they join.
+    pledge = db.Column(db.String(200))
+    # Their circle can already see what they're quitting, so that's who a shared pledge goes to.
+    pledge_shared = db.Column(db.Boolean, nullable=False, default=True)
+    audience = db.Column(db.String(20))
+
+
 class Category(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     slug = db.Column(db.String(50), unique=True, nullable=False)
@@ -100,7 +117,16 @@ class Category(db.Model):
 
     @property
     def pledge(self):
-        return f"I'm someone who doesn't {CATEGORY_LOOKS[self.slug][1]}."
+        return pledge_for([self])
+
+
+def pledge_for(categories):
+    """One sentence for everything someone is quitting: "I'm someone who doesn't doomscroll or vape." """
+    verbs = [CATEGORY_LOOKS[category.slug][1] for category in categories]
+    if not verbs:
+        return "I'm someone who's already quit."
+    joined = verbs[0] if len(verbs) == 1 else f"{', '.join(verbs[:-1])} or {verbs[-1]}"
+    return f"I'm someone who doesn't {joined}."
 
 
 class Membership(db.Model):
@@ -146,18 +172,24 @@ class PostPhoto(db.Model):
     data = deferred(db.Column(db.LargeBinary, nullable=False))
 
 
+# The communities a post went into. A post with none is Overall, and only shows in the overall feed.
+post_category = db.Table(
+    "post_category",
+    db.Column("post_id", db.ForeignKey("post.id", ondelete="CASCADE"), primary_key=True),
+    db.Column("category_id", db.ForeignKey("category.id"), primary_key=True),
+)
+
+
 class Post(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     user_id = db.Column(db.ForeignKey("users.id", ondelete="CASCADE"), nullable=False)
-    # NULL means the post only shows in the overall feed.
-    category_id = db.Column(db.ForeignKey("category.id"))
     report_type = db.Column(db.String(20), nullable=False, default="post")
     visibility = db.Column(db.String(20), nullable=False)
     body = db.Column(db.Text, nullable=False)
     created_at = db.Column(db.DateTime(timezone=True), server_default=func.now(), nullable=False)
 
     author = db.relationship(User, lazy="joined")
-    category = db.relationship(Category, lazy="joined")
+    categories = db.relationship(Category, secondary=post_category, lazy="selectin", order_by=Category.name)
     comments = db.relationship("Comment", back_populates="post", lazy="selectin", order_by="Comment.id")
     reactions = db.relationship("Reaction", lazy="selectin")
     photo = db.relationship(PostPhoto, lazy="selectin", uselist=False)
@@ -196,30 +228,36 @@ class Reaction(db.Model):
     post_id = db.Column(db.ForeignKey("post.id", ondelete="CASCADE"), primary_key=True)
 
 
+# The communities someone stayed in character for on a check-in.
+check_in_category = db.Table(
+    "check_in_category",
+    db.Column("user_id", db.Integer, primary_key=True),
+    db.Column("day", db.Date, primary_key=True),
+    db.Column("category_id", db.ForeignKey("category.id"), primary_key=True),
+    db.ForeignKeyConstraint(["user_id", "day"], ["check_in.user_id", "check_in.day"], ondelete="CASCADE"),
+)
+
+
 class CheckIn(db.Model):
     """One person's answers for one day. Only they can see it, unless they share it, which makes a normal post."""
 
     user_id = db.Column(db.ForeignKey("users.id", ondelete="CASCADE"), primary_key=True)
     day = db.Column(db.Date, primary_key=True, default=date.today)
     mood = db.Column(db.Integer, nullable=False)
-    urges = db.Column(db.Integer, nullable=False)
+    # Whether they ticked every community they were in. Saved, because they can join or leave one later.
     on_track = db.Column(db.Boolean, nullable=False)
-    trigger = db.Column(db.String(20))
     post_id = db.Column(db.ForeignKey("post.id", ondelete="SET NULL"))
 
     post = db.relationship(Post)
+    larped = db.relationship(Category, secondary=check_in_category, lazy="selectin", order_by=Category.name)
 
     @property
     def mood_label(self):
-        return MOODS[self.mood]
+        return f"{self.mood}/10"
 
     @property
-    def urges_label(self):
-        return URGES[self.urges]
-
-    @property
-    def trigger_label(self):
-        return TRIGGERS.get(self.trigger)
+    def larped_label(self):
+        return ", ".join(category.name for category in self.larped) or "Not today"
 
     @property
     def audience(self):
@@ -228,22 +266,25 @@ class CheckIn(db.Model):
     @property
     def answers(self):
         """The answers as the form sends them, to fill it in again when editing."""
-        return {
-            "mood": str(self.mood),
-            "urges": str(self.urges),
-            "on_track": "yes" if self.on_track else "no",
-            "trigger": self.trigger or "",
-            "visibility": self.audience,
-        }
+        return {"mood": str(self.mood), "visibility": self.audience}
 
     @property
     def summary(self):
-        """The text of the post when this is shared."""
-        parts = [f"Feeling {self.mood_label.lower()}.", f"Urges: {self.urges_label.lower()}."]
-        if self.trigger and self.trigger != "nothing":
-            parts.append(f"Hardest part: {self.trigger_label.lower()}.")
-        parts.append("Stayed in character." if self.on_track else "Slipped today, and being honest about it.")
+        """The text of the post when this is shared. It only names what they ticked, so it can't out anything else."""
+        parts = [f"Feeling {self.mood_label}."]
+        if self.larped:
+            parts.append(f"Stayed in character: {self.larped_label}.")
+        elif not self.on_track:
+            parts.append("Didn't stay in character today, and being honest about it.")
         return " ".join(parts)
+
+
+class EarnedBadge(db.Model):
+    """An achievement someone has earned. The list of them is in badges.py."""
+
+    user_id = db.Column(db.ForeignKey("users.id", ondelete="CASCADE"), primary_key=True)
+    badge = db.Column(db.String(20), primary_key=True)
+    earned_on = db.Column(db.Date, nullable=False, default=date.today)
 
 
 def circle_links(user):

@@ -1,10 +1,10 @@
 {% extends "base.html" %}
-{% from "_ui.html" import audience_icon, icon %}
+{% from "_forms.html" import audience_options, community_boxes %}
+{% from "_ui.html" import icon %}
 
 {% block title %}Write · Cove{% endblock %}
 
 {% block content %}
-  {% set audience_notes = {"public": "Anyone, even without an account", "circle": "You and the people in your circle", "private": "Nobody else sees this"} %}
   <div class="page-head"><h1>Write</h1></div>
   <p class="muted lead">A report, a reflection or just a photo. You choose who sees it.</p>
   {% if error %}<p class="form-msg" role="alert">{{ icon("alert") }}<span>{{ error }}</span></p>{% endif %}
@@ -13,18 +13,8 @@
 
     <fieldset class="card">
       <legend class="q-title"><span class="q-num" aria-hidden="true">1</span>Where does it go?</legend>
-      <div class="chips">
-        <label class="chip">
-          <input class="sr-only" type="radio" name="category" value="" {% if not form.get("category") %}checked{% endif %}>
-          <span class="radio-ind" aria-hidden="true"></span>{{ icon("sparkle") }}Overall
-        </label>
-        {% for category in categories %}
-          <label class="chip">
-            <input class="sr-only" type="radio" name="category" value="{{ category.slug }}" {% if form.get("category") == category.slug %}checked{% endif %}>
-            <span class="radio-ind" aria-hidden="true"></span>{{ icon(category.icon) }}{{ category.name }}
-          </label>
-        {% endfor %}
-      </div>
+      {{ community_boxes(categories, chosen) }}
+      <p class="muted small mt-12">Pick as many communities as you like, or Overall on its own.</p>
     </fieldset>
 
     <fieldset class="card">
@@ -56,16 +46,7 @@
 
     <fieldset class="card">
       <legend class="q-title"><span class="q-num" aria-hidden="true">4</span>Who can see this?</legend>
-      <div class="options">
-        {% for value, label in visibilities.items() %}
-          <label class="option">
-            <input class="sr-only" type="radio" name="visibility" value="{{ value }}" {% if form.get("visibility", "circle") == value %}checked{% endif %}>
-            <span class="radio-ind" aria-hidden="true"></span>
-            <span class="option-text"><span class="option-title">{{ label }}</span><span class="option-sub">{{ audience_notes[value] }}</span></span>
-            {{ audience_icon(value) }}
-          </label>
-        {% endfor %}
-      </div>
+      {{ audience_options(visibilities, form.get("visibility", current_user.default_audience or "circle")) }}
     </fieldset>
 
     <button class="btn btn-primary btn-block">{{ icon("tick") }}Post</button>

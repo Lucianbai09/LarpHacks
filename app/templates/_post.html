@@ -7,7 +7,7 @@
       <p class="strong"><a href="{{ url_for('main.profile', username=post.author.username) }}">{{ post.author.username }}</a>{{ badge(post.author) }}</p>
       <p class="muted small">
         {{ post.created_at.strftime("%b %d, %Y") }}
-        · {% if post.category %}<a href="{{ url_for('main.category_feed', slug=post.category.slug) }}">{{ post.category.name }}</a>{% else %}Overall{% endif %}
+        · {% for category in post.categories %}<a href="{{ url_for('main.category_feed', slug=category.slug) }}">{{ category.name }}</a>{% if not loop.last %}, {% endif %}{% else %}Overall{% endfor %}
         · {{ post.report_label }}
       </p>
     </div>

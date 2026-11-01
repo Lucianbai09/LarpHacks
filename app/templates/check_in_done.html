@@ -17,20 +17,18 @@
       <a class="btn btn-ghost btn-sm" href="{{ url_for('main.check_in', edit=1) }}">{{ icon("pen") }}Edit</a>
     </div>
     <div class="stats mt-16">
-      <div class="stat"><p class="stat-label">Mood</p><p class="stat-value stat-sm">{{ entry.mood_label }}</p></div>
-      <div class="stat"><p class="stat-label">Urges</p><p class="stat-value stat-sm">{{ entry.urges_label }}</p></div>
-      <div class="stat"><p class="stat-label">In character</p><p class="stat-value stat-sm">{{ "Yes" if entry.on_track else "No" }}</p></div>
+      <div class="stat"><p class="stat-label">Feeling</p><p class="stat-value stat-sm">{{ entry.mood_label }}</p></div>
+      <div class="stat"><p class="stat-label">In character</p><p class="stat-value stat-sm">{{ entry.larped_label }}</p></div>
     </div>
-    {% if entry.trigger %}<p class="mt-16"><span class="strong">Hardest today:</span> {{ entry.trigger_label }}</p>{% endif %}
-    <p class="privacy mt-16">{{ audience_icon(entry.audience) }}<span>Who can see this: {{ visibilities[entry.audience] }}</span></p>
+    <p class="privacy mt-16">{{ audience_icon(entry.audience) }}<span>Who can see this: {{ visibilities[entry.audience] }}{% if entry.post %}, in {{ entry.post.categories|map(attribute="name")|join(", ") or "Overall" }}{% endif %}</span></p>
   </section>
 
-  {% if not entry.on_track and memberships %}
+  {% if missed %}
     <section class="card">
       <h2 class="h2">Want to restart a count?</h2>
       <p class="muted mt-8">It's up to you. Your counts stay as they are unless you restart them.</p>
       <div class="btn-row mt-16">
-        {% for membership in memberships %}
+        {% for membership in missed %}
           {{ post_button(url_for('main.restart', slug=membership.category.slug), 'I broke character in ' ~ membership.category.name, confirm='Restart your count at day 0?') }}
         {% endfor %}
       </div>

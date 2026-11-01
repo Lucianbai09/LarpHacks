@@ -1,11 +1,11 @@
 {% extends "base.html" %}
-{% from "_ui.html" import icon, urge_bars %}
+{% from "_ui.html" import icon %}
 
 {% block title %}Check in · Cove{% endblock %}
 
 {% block content %}
   <div class="page-head"><h1>{{ "Edit today's check-in" if entry else "Daily check-in" }}</h1></div>
-  <p class="muted lead">A few taps, no typing. About 20 seconds.</p>
+  <p class="muted lead">Three quick questions, no typing.</p>
   {% if error %}<p class="form-msg" role="alert">{{ icon("alert") }}<span>{{ error }}</span></p>{% endif %}
 
   <form method="post" class="stack">
@@ -14,62 +14,43 @@
     <fieldset class="card q">
       <legend class="q-title"><span class="q-num" aria-hidden="true">1</span>How are you feeling today?</legend>
       <div class="tiles">
-        {% for value, label in moods.items() %}
+        {% for value in moods %}
           <label class="tile">
             <input class="sr-only" type="radio" name="mood" value="{{ value }}" required {% if answers.get("mood") == value|string %}checked{% endif %}>
-            {{ icon("mood-" ~ value) }}<span class="tile-label">{{ label }}</span>
+            <span class="tile-label">{{ value }}</span>
           </label>
         {% endfor %}
       </div>
+      <p class="scale-ends muted small mt-8"><span>1 is awful</span><span>10 is great</span></p>
     </fieldset>
 
     <fieldset class="card q">
-      <legend class="q-title"><span class="q-num" aria-hidden="true">2</span>How strong were your urges today?</legend>
-      <div class="tiles">
-        {% for value, label in urges.items() %}
-          <label class="tile">
-            <input class="sr-only" type="radio" name="urges" value="{{ value }}" required {% if answers.get("urges") == value|string %}checked{% endif %}>
-            {{ urge_bars(value) }}<span class="tile-label">{{ label }}</span>
-          </label>
-        {% endfor %}
-      </div>
+      <legend class="q-title"><span class="q-num" aria-hidden="true">2</span>Where did you stay in character today?</legend>
+      {% if categories %}
+        <div class="options">
+          {% for category in categories %}
+            <label class="option">
+              <input class="sr-only" type="checkbox" name="larped" value="{{ category.slug }}" {% if category.slug in ticked %}checked{% endif %}>
+              <span class="check-ind" aria-hidden="true">{{ icon("tick") }}</span>
+              {{ icon(category.icon) }}
+              <span class="option-text"><span class="option-title">{{ category.name }}</span><span class="option-sub">{{ category.pledge }}</span></span>
+            </label>
+          {% endfor %}
+        </div>
+        <p class="muted small mt-12">Tick each one you pulled off. If you slipped, leave it blank. Honest days count too.</p>
+      {% else %}
+        <p class="muted">You're not working on anything yet. <a href="{{ url_for('main.category_list') }}">Find your community</a>.</p>
+      {% endif %}
     </fieldset>
 
     <fieldset class="card q">
-      <legend class="q-title"><span class="q-num" aria-hidden="true">3</span>Did you stay in character today?</legend>
-      <div class="options">
-        <label class="option">
-          <input class="sr-only" type="radio" name="on_track" value="yes" required {% if answers.get("on_track") == "yes" %}checked{% endif %}>
-          <span class="radio-ind" aria-hidden="true"></span><span class="option-title">Yes, I stayed in character</span>
-        </label>
-        <label class="option">
-          <input class="sr-only" type="radio" name="on_track" value="no" required {% if answers.get("on_track") == "no" %}checked{% endif %}>
-          <span class="radio-ind" aria-hidden="true"></span><span class="option-title">No, I slipped</span>
-        </label>
-      </div>
-      <p class="muted small mt-12">Slips happen. Being honest helps you spot patterns.</p>
-    </fieldset>
-
-    <fieldset class="card q">
-      <legend class="q-title"><span class="q-num" aria-hidden="true">4</span><span>What was hardest today? <span class="q-optional">Optional</span></span></legend>
-      <div class="chips">
-        {% for value, label in triggers.items() %}
-          <label class="chip">
-            <input class="sr-only" type="radio" name="trigger" value="{{ value }}" {% if answers.get("trigger") == value %}checked{% endif %}>
-            <span class="radio-ind" aria-hidden="true"></span>{{ label }}
-          </label>
-        {% endfor %}
-      </div>
-    </fieldset>
-
-    <fieldset class="card">
-      <legend class="q-title">Who can see this?</legend>
+      <legend class="q-title"><span class="q-num" aria-hidden="true">3</span>Who can see this?</legend>
       <div class="segmented">
         {% for value in ["private", "circle", "public"] %}
-          <label><input class="sr-only" type="radio" name="visibility" value="{{ value }}" {% if answers.get("visibility", "private") == value %}checked{% endif %}><span>{{ visibilities[value] }}</span></label>
+          <label><input class="sr-only" type="radio" name="visibility" value="{{ value }}" {% if answers.get("visibility", current_user.default_audience or "private") == value %}checked{% endif %}><span>{{ visibilities[value] }}</span></label>
         {% endfor %}
       </div>
-      <p class="muted small mt-12">Only me keeps it on your Progress page. Sharing it posts a one-line summary.</p>
+      <p class="muted small mt-12">Only me keeps it on your Progress page. Sharing posts one line about it in the communities you ticked, or in Overall if you ticked none.</p>
     </fieldset>
 
     <div class="btn-row">

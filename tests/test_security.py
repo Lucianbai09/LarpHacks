@@ -36,7 +36,7 @@ PUBLIC_ENDPOINTS = {
     "auth.reset_password",
 }
 
-URL_VALUES = {"slug": "alcohol", "token": "not-a-token", "username": "nobody", "post_id": 1, "filename": "style.css"}
+URL_VALUES = {"slug": "alcohol", "token": "not-a-token", "username": "nobody", "post_id": 1, "filename": "style.css", "step": 1}
 
 
 def routes(app, method=None):
@@ -364,15 +364,14 @@ def test_forgot_password_needs_the_captcha_too(make_user, visitor, captcha_on, o
     assert response.status_code == 400 and outbox == []
 
 
-# ---- Email delivery and local-only links
+# ---- Email delivery
 
 
-def test_email_links_only_appear_on_the_page_in_local_debug_mode(app, monkeypatch, make_user, visitor):
+def test_email_links_never_appear_on_the_page(app, monkeypatch, make_user, visitor):
     make_user("alice")
-    assert "/reset-password/" not in visitor().post("/forgot-password", {"email": "alice@mail.test"}, follow_redirects=True).get_data(as_text=True)
     monkeypatch.setattr(app, "debug", True)
     monkeypatch.setitem(app.config, "DEBUG", True)
-    assert '<a href="https://larphacks.test/reset-password/' in visitor().post("/forgot-password", {"email": "alice@mail.test"}, follow_redirects=True).get_data(as_text=True)
+    assert "/reset-password/" not in visitor().post("/forgot-password", {"email": "alice@mail.test"}, follow_redirects=True).get_data(as_text=True)
 
 
 class FakeAppsScript(http.server.BaseHTTPRequestHandler):

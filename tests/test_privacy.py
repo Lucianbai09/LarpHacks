@@ -79,6 +79,97 @@ def test_overall_posts_only_show_on_the_home_feed(make_user, visitor):
     assert "overall-post" not in visitor().text("/categories/alcohol")
 
 
+def test_a_post_can_go_in_several_communities_or_overall_but_not_both(make_user, visitor, count):
+    browser = make_user("author")
+    fields = {"visibility": "public", "report_type": "weekly"}
+    assert browser.post("/write", {**fields, "body": "both-post", "category": ["alcohol", "gaming"]}).headers["Location"] == "/"
+    for slug, shown in [("alcohol", True), ("gaming", True), ("scrolling", False)]:
+        assert ("both-post" in visitor().text(f"/categories/{slug}")) == shown, slug
+    assert visitor().text("/").count("both-post") == 1
+
+    assert browser.post("/write", {**fields, "body": "x", "category": ["", "alcohol"]}).status_code == 400
+    assert browser.post("/write", {**fields, "body": "x", "category": ["alcohol", "nope"]}).status_code == 400
+    assert count(Post) == 1
+
+
+def test_believing_from_the_page_answers_without_a_redirect(make_user, post_id, visitor):
+    browser = make_user("author")
+    browser.write("a post")
+    target = post_id("a post")
+    press = lambda: browser.post(f"/posts/{target}/believe", headers={"X-Requested-With": "fetch"})
+    assert press().get_json() == {"believed": True, "believers": 1, "badges": []}, "your own post doesn't earn Cheerleader"
+    assert "You believe this (1)" in browser.text(f"/posts/{target}")
+    assert press().get_json() == {"believed": False, "believers": 0, "badges": []}
+
+    fan = make_user("fan")
+    reply = fan.post(f"/posts/{target}/believe", headers={"X-Requested-With": "fetch"}).get_json()
+    assert reply["believers"] == 1 and reply["badges"] == ["Cheerleader"]
+    assert "I believe you (1)" in visitor().text(f"/posts/{target}"), "and everyone else sees it next time they load the page"
+
+
+def test_setup_steps_join_communities_and_save_the_pledge_and_audience(make_user, visitor):
+    alice = make_user("alice")
+    assert alice.post("/setup/1", {}, token_from="/setup/1").status_code == 400
+    assert alice.post("/setup/1", {"habit": ["alcohol", "nope"]}, token_from="/setup/1").status_code == 400
+    assert alice.post("/setup/1", {"habit": ["alcohol", "gaming"]}, token_from="/setup/1").headers["Location"] == "/setup/2"
+    assert "I&#39;m someone who doesn&#39;t need a drink or game on autopilot." in alice.text("/setup/2")
+
+    assert alice.post("/setup/2", {"pledge": "x" * 201, "shared": "on"}, token_from="/setup/2").status_code == 400
+    assert alice.post("/setup/2", {"pledge": "I go to bed early now.", "shared": "on"}, token_from="/setup/2").headers["Location"] == "/setup/3"
+    assert alice.post("/setup/3", {"visibility": "private"}, token_from="/setup/3").headers["Location"] == "/"
+    assert 'value="private" checked' in " ".join(alice.text("/write").split())
+    assert alice.c.get("/setup/9").status_code == 404
+
+    alice.post("/setup/1", {"habit": ["gaming"]}, token_from="/setup/1")
+    assert "1 day" not in alice.text("/categories/alcohol") and "Join and start my count" in alice.text("/categories/alcohol")
+
+
+def test_a_pledge_is_only_shown_to_you_and_your_circle(make_user, visitor):
+    alice = make_user("alice")
+    friend = make_user("friend")
+    stranger = make_user("stranger")
+    alice.add("friend")
+    friend.add("alice")
+
+    assert "already quit" in alice.text("/u/alice"), "there's always a suggested pledge to start from"
+    alice.post("/pledge", {"pledge": "pledge-words", "shared": "on"})
+    assert "pledge-words" in alice.text("/u/alice") and "pledge-words" in friend.text("/u/alice")
+    for viewer in [stranger, visitor()]:
+        assert "pledge-words" not in viewer.text("/u/alice")
+
+    alice.post("/pledge", {"pledge": "pledge-words"})
+    assert "pledge-words" in alice.text("/u/alice") and "pledge-words" not in friend.text("/u/alice")
+
+    assert b"up to 200" in alice.post("/pledge", {"pledge": "x" * 201}, follow_redirects=True).data
+    assert "pledge-words" in alice.text("/u/alice")
+
+
+def test_badges_are_earned_once_and_only_you_see_them(make_user, app):
+    alice = make_user("alice")
+    bobby = make_user("bobby")
+    answers = {"mood": "8", "visibility": "private"}
+    assert "New badge: First step" in alice.post("/check-in", answers, follow_redirects=True).get_data(as_text=True)
+    assert "New badge" not in alice.post("/check-in", answers, follow_redirects=True).get_data(as_text=True)
+
+    page = alice.text("/u/alice")
+    assert 'id="badges"' in page and "1 of 10 earned" in page and "First step" in page
+    assert 'id="badges"' not in bobby.text("/u/alice")
+
+    alice.add("bobby")
+    assert "New badge: Partnered up" in bobby.add("alice").get_data(as_text=True)
+
+    # Seven days in a row, with a slip and a comeback along the way.
+    with app.app_context():
+        user = db.session.scalar(db.select(User).filter_by(username="alice"))
+        db.session.execute(db.delete(CheckIn))
+        for ago in range(1, 9):
+            db.session.add(CheckIn(user_id=user.id, day=date.today() - timedelta(days=ago), mood=8, on_track=ago != 8))
+        db.session.commit()
+    earned = alice.post("/check-in", answers, follow_redirects=True).get_data(as_text=True)
+    for name in ["Honest day", "Comeback", "Perfect week"]:
+        assert f"New badge: {name}" in earned, name
+
+
 def test_belief_toggles_and_returns_to_the_post(make_user, post_id):
     browser = make_user("author")
     browser.write("a post")
@@ -167,7 +258,7 @@ def test_removing_someone_closes_everything_at_once(make_user, post_id, visitor)
 # ---- Daily check-ins
 
 
-CHECK_IN = {"mood": "4", "urges": "1", "on_track": "yes", "visibility": "private"}
+CHECK_IN = {"mood": "8", "visibility": "private"}
 
 
 def test_check_ins_stay_private_until_shared(make_user, visitor, count):
@@ -177,16 +268,16 @@ def test_check_ins_stay_private_until_shared(make_user, visitor, count):
     bobby.add("alice")
 
     assert alice.post("/check-in", CHECK_IN).status_code == 302
-    assert "You checked in today" in alice.text("/") and "Good mood" in alice.text("/")
+    assert "You checked in today" in alice.text("/") and "Feeling 8/10" in alice.text("/")
     assert count(Post) == 0 and "1/1" in alice.text("/progress")
     assert "1/1" not in bobby.text("/progress"), "your progress page is only ever your own"
 
-    alice.post("/check-in", {**CHECK_IN, "mood": "5", "visibility": "circle"})
+    alice.post("/check-in", {**CHECK_IN, "mood": "10", "visibility": "circle"})
     assert count(CheckIn) == 1 and count(Post) == 1, "one a day, and answering again updates it"
-    assert "Feeling great" in bobby.text("/") and "Feeling great" not in visitor().text("/")
+    assert "Feeling 10/10" in bobby.text("/") and "Feeling 10/10" not in visitor().text("/")
 
     alice.post("/check-in", {**CHECK_IN, "mood": "3", "visibility": "circle"})
-    assert count(Post) == 1 and "Feeling okay" in bobby.text("/") and "Feeling great" not in bobby.text("/")
+    assert count(Post) == 1 and "Feeling 3/10" in bobby.text("/") and "Feeling 10/10" not in bobby.text("/")
 
     alice.post("/check-in", CHECK_IN)
     assert count(CheckIn) == 1 and count(Post) == 0 and "Feeling" not in bobby.text("/")
@@ -194,11 +285,30 @@ def test_check_ins_stay_private_until_shared(make_user, visitor, count):
 
 def test_check_in_refuses_bad_answers_and_keeps_good_ones(make_user, count):
     browser = make_user("alice")
-    for bad in [{"mood": "9"}, {"mood": "x"}, {"urges": "7"}, {"on_track": "maybe"}, {"trigger": "nope"}, {"visibility": "everyone"}]:
+    for bad in [{"mood": "11"}, {"mood": "0"}, {"mood": "x"}, {"larped": "alcohol"}, {"visibility": "everyone"}]:
         assert browser.post("/check-in", {**CHECK_IN, **bad}).status_code == 400, bad
     assert count(CheckIn) == 0
-    html = browser.post("/check-in", {**CHECK_IN, "urges": "7"}).get_data(as_text=True)
-    assert 'value="4" required checked' in " ".join(html.split())
+    html = browser.post("/check-in", {**CHECK_IN, "visibility": "everyone"}).get_data(as_text=True)
+    assert 'value="8" required checked' in " ".join(html.split())
+
+
+def test_a_shared_check_in_only_names_and_goes_into_what_you_ticked(make_user, visitor):
+    alice = make_user("alice")
+    alice.post("/categories/gaming/join")
+    alice.post("/categories/alcohol/join")
+
+    alice.post("/check-in", {**CHECK_IN, "larped": ["gaming"], "visibility": "public"})
+    assert "Feeling 8/10. Stayed in character: Gaming." in visitor().text("/categories/gaming")
+    assert "Feeling 8/10" not in visitor().text("/categories/alcohol"), "and nothing about the one left blank"
+    done = alice.text("/check-in")
+    assert "I broke character in Alcohol" in done and "I broke character in Gaming" not in done
+
+    alice.post("/check-in", {**CHECK_IN, "larped": ["gaming", "alcohol"], "visibility": "public"})
+    assert "I broke character" not in alice.text("/check-in") and "1/1" in alice.text("/progress")
+
+    alice.post("/check-in", {**CHECK_IN, "mood": "3", "visibility": "public"})
+    assert "Feeling 8/10" not in visitor().text("/categories/gaming")
+    assert "Feeling 3/10. Didn&#39;t stay in character today" in visitor().text("/"), "nothing ticked goes in Overall"
 
 
 # ---- Communities and counts

@@ -13,28 +13,35 @@
       <h2 class="h2" id="week-title">Last 7 days</h2>
       <div class="stats mt-16">
         <div class="stat"><p class="stat-label">In character</p><p class="stat-value">{{ summary.on_track }}/{{ summary.count }}</p></div>
-        <div class="stat"><p class="stat-label">Average mood</p><p class="stat-value">{{ summary.mood }}</p></div>
-        <div class="stat"><p class="stat-label">Average urges</p><p class="stat-value">{{ summary.urges }}</p></div>
+        <div class="stat"><p class="stat-label">Average mood</p><p class="stat-value">{{ summary.mood }}/10</p></div>
       </div>
       {% if hardest %}
-        <p class="strong mt-16">{{ "Today" if hardest.day == today else hardest.day.strftime("%A") }} was your hardest day.{% if hardest.trigger_label and hardest.trigger != "nothing" %} Hardest part: {{ hardest.trigger_label|lower }}.{% endif %}</p>
+        <p class="strong mt-16">{{ "Today" if hardest.day == today else hardest.day.strftime("%A") }} was your hardest day.</p>
       {% endif %}
       {{ week_dots(week, today) }}
 
       <div class="divider"></div>
       <h3 class="h2">Mood</h3>
-      <p class="muted small mt-4">Higher is better</p>
-      {{ bar_chart(week, today, "mood") }}
-
-      <div class="divider"></div>
-      <h3 class="h2">Urges</h3>
-      <p class="muted small mt-4">Lower is better</p>
-      {{ bar_chart(week, today, "urges") }}
+      <p class="muted small mt-4">Out of 10</p>
+      {{ bar_chart(week, today) }}
 
       <div class="legend">
         <span><i class="key-on"></i>In character</span>
         <span><i class="key-slip"></i>Slipped</span>
       </div>
+
+      {% if current_user.memberships %}
+        <div class="divider"></div>
+        <h3 class="h2">By community</h3>
+        {% for membership in current_user.memberships|sort(attribute="category.name") %}
+          {% set category = membership.category %}
+          <div class="card-head mt-12">
+            <span class="pill">{{ icon(category.icon) }}{{ category.name }}</span>
+            <span class="muted small">{{ summary.larped[category.slug] }} of {{ summary.count }} days</span>
+          </div>
+          <progress class="meter mt-8" value="{{ summary.larped[category.slug] }}" max="{{ summary.count }}" aria-label="Days in character for {{ category.name }}"></progress>
+        {% endfor %}
+      {% endif %}
     </section>
 
     <section class="card" aria-labelledby="month-title">
@@ -42,7 +49,7 @@
       <div class="stats mt-16">
         <div class="stat"><p class="stat-label">Check-ins</p><p class="stat-value">{{ month.count }}</p></div>
         <div class="stat"><p class="stat-label">In character</p><p class="stat-value">{{ month.on_track }}/{{ month.count }}</p></div>
-        <div class="stat"><p class="stat-label">Hardest part</p><p class="stat-value stat-sm">{{ month.trigger or "None yet" }}</p></div>
+        <div class="stat"><p class="stat-label">Average mood</p><p class="stat-value">{{ month.mood }}/10</p></div>
       </div>
     </section>
 

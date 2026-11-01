@@ -56,7 +56,7 @@ Real people can't register those usernames or an `@example.com` email.
 
 Registering takes a username, an email and a password, and each email can only have one account. There are no password rules, so anything that isn't blank works. Accounts work straight away. A confirmation link is emailed too, and clicking it adds a checkmark next to your name. Forgot password emails a link that works once and expires in an hour.
 
-**Locally, email setup is optional.** F5 always shows each link on the page too, so local testing works with `EMAIL_WEBHOOK_URL` blank or broken. This only happens in debug mode, so never on Render.
+**Without email set up,** accounts still work, but no links get sent, so nobody can confirm an email or reset a password. The error shows in VS Code's Debug Console.
 
 **To send real email for free,** use a small Google Apps Script that sends from a Gmail account. It handles 100 emails a day, needs no card or domain, and works on Render, whose free plan blocks SMTP. Recipients see that Gmail address as the sender, so you may want a team one.
 
@@ -87,7 +87,7 @@ If emails don't arrive, check spam, then look for an error in VS Code's Debug Co
 
 `SECURITY.md` lists what's protected, what runs automatically, and the checklist for every new feature.
 
-**Captcha:** locally, `.env` uses Cloudflare's public test keys, so you'll see a "Testing only" widget that always passes. For the real thing, add a free Turnstile widget in the [Cloudflare dashboard](https://dash.cloudflare.com/?to=/:account/turnstile) with your Render hostname, and put its keys in Render's environment settings. With no keys set, the captcha is off.
+**Captcha:** locally, `.env` uses Cloudflare's public test keys, which always pass, so they don't stop any bots. The widget stays hidden unless Cloudflare wants someone to click it. For the real thing, add a free Turnstile widget in the [Cloudflare dashboard](https://dash.cloudflare.com/?to=/:account/turnstile) with your Render hostname, and put its keys in Render's environment settings. With no keys set, the captcha is off.
 
 **Tests:** in VS Code, open the **Testing** panel (the flask icon) and click **Run Tests**. They run against the separate `larphacks_test` database and wipe it each time, so create that once with `createdb` as above.
 
@@ -105,7 +105,9 @@ If emails don't arrive, check spam, then look for an error in VS Code's Debug Co
 
 Circle membership is mutual and needs an accepted request. Communities on a profile are only shown to that person and their circle. A post's photo has the same audience as the post.
 
-Daily check-ins and the Progress page are only visible to you. Sharing a check-in turns a one-line summary of it into a normal post, always under Overall, so it doesn't reveal what you're quitting.
+A post goes into any number of communities, or into Overall on its own. Daily check-ins and the Progress page are only visible to you. Sharing a check-in turns a one-line summary of it into a normal post, in the communities you ticked as staying in character for, or Overall if you ticked none.
+
+Your pledge is visible to you and your circle, unless you turn that off. Achievement badges are only visible to you.
 
 `visible_to()` in `app/models.py` is the one place these rules live. Any new query that reads posts must use it.
 
@@ -124,6 +126,7 @@ Daily check-ins and the Progress page are only visible to you. Sharing a check-i
 | `.github/` | Weekly security checks and dependency updates |
 | `app/views.py` | Feeds, write, check-ins, progress, posts, communities, profiles, circles |
 | `app/photos.py` | Cleans up uploaded photos |
+| `app/badges.py` | The achievement badges and what earns each one |
 | `app/demo.py` | Demo data for `flask seed-demo` |
 | `app/templates/` | Jinja templates. `_post.html` is one post, `_forms.html` has the form macros, `_ui.html` has icons and medals, `_icons.html` is the icon set |
 | `app/static/style.css` | All the styling, and the design system's colours at the top |
@@ -133,7 +136,9 @@ Daily check-ins and the Progress page are only visible to you. Sharing a check-i
 
 **Add a category:** add a line to `CATEGORIES` in `app/models.py`, with an icon name from `_icons.html`, then run `flask init-db`. Pages pick it up from the database.
 
-**Change the check-in questions:** the answers are listed at the top of `app/models.py`.
+**Change the check-in questions:** they're in `app/templates/check_in.html`, and the 1 to 10 scale is at the top of `app/models.py`.
+
+**Add a badge:** add it to `ACHIEVEMENTS` in `app/badges.py`, and its rule to `qualifying_badges()`. If it's earned by something other than a form submitted to `app/views.py`, call `award_badges()` there too.
 
 **Change a table:** there are no migrations yet. `flask init-db` only creates missing tables, so changing an existing one means recreating your local database with `dropdb` and `createdb`, then running `flask init-db` again. On Render, that means deleting and recreating the database, which loses its data.
 

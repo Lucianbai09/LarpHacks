@@ -4,7 +4,7 @@ import re
 import threading
 import urllib.request
 
-from flask import current_app, flash
+from flask import current_app
 
 
 def page_text(page):
@@ -38,9 +38,5 @@ def send_link_email(to, subject, intro, link):
         body = f"{intro}\n\n{link}\n\nIf this wasn't you, you can ignore this email."
         args = (webhook_url, to, subject, body, current_app.logger)
         threading.Thread(target=deliver, args=args, daemon=True).start()
-    elif not current_app.debug:
+    else:
         current_app.logger.error("Can't send email: EMAIL_WEBHOOK_URL isn't set.")
-
-    # Local testing never gets stuck on email. Debug is never on in production, so links can't leak there.
-    if current_app.debug:
-        flash(f"Running locally, so here's the link in case the email doesn't arrive: {link}")

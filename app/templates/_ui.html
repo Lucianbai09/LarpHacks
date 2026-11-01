@@ -7,13 +7,6 @@
 
 {% macro audience_icon(visibility) %}{{ icon({"public": "globe", "circle": "people", "private": "lock"}[visibility]) }}{% endmacro %}
 
-{# Five bars that fill up with how strong the urges were. #}
-{% macro urge_bars(level) %}
-  <svg class="i urge-bars" viewBox="0 0 24 24" aria-hidden="true">
-    {% for height in [3, 6, 9, 12, 15] %}<path class="{{ 'on' if loop.index <= level else 'off' }}" d="M{{ loop.index * 4 }} 20v-{{ height }}"></path>{% endfor %}
-  </svg>
-{% endmacro %}
-
 {# A dot for each of the last seven days. Slips get a cross, so they never rely on colour alone. #}
 {% macro week_dots(week, today) %}
   <ol class="week">
@@ -29,23 +22,23 @@
   </ol>
 {% endmacro %}
 
-{# Bars for the last seven days. `kind` is "mood" or "urges". #}
-{% macro bar_chart(week, today, kind) %}
-  <div class="chart {{ kind }}">
+{# Bars for the last seven days, showing how someone felt out of 10. #}
+{% macro bar_chart(week, today) %}
+  <div class="chart">
     {% for item in week %}
       {% set entry = item.entry %}
       <div class="chart-col{% if entry and not entry.on_track %} slip{% endif %}{% if not entry %} pending{% endif %}">
-        <span class="chart-area"><span class="chart-bar{% if entry %} h-{{ entry.mood if kind == 'mood' else entry.urges + 1 }}{% endif %}"></span></span>
+        <span class="chart-area"><span class="chart-bar{% if entry %} h-{{ entry.mood }}{% endif %}"></span></span>
         <span class="chart-label">{{ "Today" if item.day == today else item.day.strftime("%a") }}</span>
-        <span class="sr-only">{% if entry %}{{ entry.mood_label if kind == "mood" else entry.urges_label }}{% else %}No check-in{% endif %}</span>
+        <span class="sr-only">{% if entry %}{{ entry.mood_label }}{% else %}No check-in{% endif %}</span>
       </div>
     {% endfor %}
   </div>
 {% endmacro %}
 
 {# A hexagon medal: ribbons and a shine once earned, a progress ring while it's next, a dashed outline while locked. #}
-{% macro medal(days, tier, status, percent) %}
-  <svg class="medal tier-{{ tier }} {{ status }}" viewBox="0 0 64 74" aria-hidden="true">
+{% macro medal(days, tier, status, percent=0, icon_name=none, cls="") %}
+  <svg class="medal tier-{{ tier }} {{ status }} {{ cls }}" viewBox="0 0 64 74" aria-hidden="true">
     {% if status == "earned" %}
       <path class="medal-ribbon" d="M22 50 16.5 70.5l7-3.6 4.4 5.6L31 58z"></path>
       <path class="medal-ribbon" d="M42 50l5.5 20.5-7-3.6-4.4 5.6L33 58z"></path>
@@ -57,12 +50,19 @@
       <circle class="medal-track" cx="32" cy="32" r="18"></circle>
       <circle class="medal-ring" cx="32" cy="32" r="18" pathLength="100" transform="rotate(-90 32 32)" stroke-dasharray="{{ percent }} 100"></circle>
     {% endif %}
-    <text class="medal-text" x="32" y="32.5" text-anchor="middle" dominant-baseline="central">{{ days }}</text>
+    {% if icon_name %}
+      <svg x="21" y="21" width="22" height="22" viewBox="0 0 24 24"><use class="medal-icon" href="#i-{{ icon_name }}"></use></svg>
+    {% else %}
+      <text class="medal-text" x="32" y="32.5" text-anchor="middle" dominant-baseline="central">{{ days }}</text>
+    {% endif %}
   </svg>
 {% endmacro %}
 
+{# An achievement from badges.py as a medal. #}
+{% macro badge_medal(badge, cls="") %}{{ medal(none, badge.tier, "earned" if badge.earned_on else "locked", 0, badge.icon, cls) }}{% endmacro %}
+
 {# One community's count. What someone is quitting is sensitive, so only show this where the viewer may see memberships. #}
-{% macro days_card(membership) %}
+{% macro days_card(membership, pledge=none) %}
   {% set category = membership.category %}
   {% set next_up = membership.next_milestone %}
   <section class="card">
@@ -71,7 +71,7 @@
       <a class="pill" href="{{ url_for('main.category_feed', slug=category.slug) }}">{{ icon(category.icon) }}{{ category.name }}</a>
     </div>
     <p class="big-num"><b>{{ membership.days }}</b><span>{{ "day" if membership.days == 1 else "days" }}</span></p>
-    <p class="pledge-quote mt-12">“{{ category.pledge }}”</p>
+    {% if pledge %}<p class="pledge-quote mt-12">“{{ pledge }}”</p>{% endif %}
     {% if next_up %}
       <progress class="meter mt-20" value="{{ membership.days }}" max="{{ next_up[0] }}" aria-label="Progress to your {{ next_up[1] }} medal"></progress>
       <p class="muted small mt-8">{{ membership.days_label }}. {{ next_up[0] - membership.days }} more until your {{ next_up[1] }} medal.</p>

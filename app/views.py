@@ -9,11 +9,10 @@ from sqlalchemy.exc import IntegrityError
 
 from . import db, limiter
 from .auth import back
+from .badges import award_badges, badge_summary
 from .models import (
     MOODS,
     TERMS_VERSION,
-    TRIGGERS,
-    URGES,
     VISIBILITIES,
     WRITE_TYPES,
     Category,
@@ -23,10 +22,12 @@ from .models import (
     Membership,
     Post,
     PostPhoto,
+    Profile,
     Reaction,
     User,
     circle_link,
     circle_links,
+    pledge_for,
     visible_to,
 )
 from .photos import MAX_PHOTO_MB, clean_photo
@@ -36,6 +37,8 @@ bp = Blueprint("main", __name__)
 FEED_LIMIT = 50
 MAX_POST_LENGTH = 5000
 MAX_COMMENT_LENGTH = 2000
+MAX_PLEDGE_LENGTH = 200
+SETUP_STEPS = 3
 # Photos are stored in a small free database, so this is stricter than the default.
 WRITE_LIMIT = "20 per minute;200 per day"
 
@@ -64,6 +67,11 @@ def my_memberships():
     if not current_user.is_authenticated:
         return {}
     return {membership.category_id: membership for membership in current_user.memberships}
+
+
+def my_categories():
+    memberships = my_memberships()
+    return [category for category in all_categories() if category.id in memberships]
 
 
 def feed(*filters):
@@ -96,13 +104,11 @@ def logged_entries(week):
 def summarize(entries):
     if not entries:
         return None
-    triggers = Counter(entry.trigger for entry in entries if entry.trigger and entry.trigger != "nothing")
     return {
         "count": len(entries),
         "on_track": sum(entry.on_track for entry in entries),
-        "mood": MOODS[round(mean(entry.mood for entry in entries))],
-        "urges": URGES[round(mean(entry.urges for entry in entries))],
-        "trigger": TRIGGERS[triggers.most_common(1)[0][0]] if triggers else None,
+        "mood": round(mean(entry.mood for entry in entries)),
+        "larped": Counter(category.slug for entry in entries for category in entry.larped),
     }
 
 
@@ -112,6 +118,15 @@ def nav_counts():
         return {"circle_requests": 0, "checked_in_today": False}
     query = db.select(func.count()).select_from(CircleLink).filter_by(addressee_id=current_user.id, accepted=False)
     return {"circle_requests": db.session.scalar(query), "checked_in_today": todays_check_in() is not None}
+
+
+@bp.after_request
+def announce_new_badges(response):
+    # Everything that can earn a badge is a POST in this file, so this is the one place to check.
+    if request.method == "POST" and current_user.is_authenticated and response.status_code < 400:
+        for name in award_badges(current_user):
+            flash(f"New badge: {name}")
+    return response
 
 
 @bp.route("/")
@@ -124,6 +139,7 @@ def home():
             week=week,
             week_summary=summarize(logged_entries(week)),
             check_in=todays_check_in(),
+            badges=badge_summary(current_user),
             posts=feed(),
         )
     return render_template("landing.html", posts=feed())
@@ -145,7 +161,7 @@ def category_list():
         "categories.html",
         categories=all_categories(),
         memberships=my_memberships(),
-        posts=feed(Post.category_id.is_not(None)),
+        posts=feed(Post.categories.any()),
     )
 
 
@@ -159,7 +175,7 @@ def category_feed(slug):
         categories=all_categories(),
         memberships=memberships,
         membership=memberships.get(category.id),
-        posts=feed(Post.category_id == category.id),
+        posts=feed(Post.categories.any(id=category.id)),
     )
 
 
@@ -193,9 +209,26 @@ def restart(slug):
     return redirect(back(url_for("main.category_feed", slug=slug)))
 
 
+def chosen_categories(form):
+    """The communities ticked on a form, where no ticks means Overall. None if the choice isn't valid."""
+    slugs = form.getlist("category")
+    wanted = {slug for slug in slugs if slug}
+    # Overall's own box sends an empty value, and it can't go with anything else.
+    if wanted and "" in slugs:
+        return None
+    categories = db.session.scalars(db.select(Category).where(Category.slug.in_(wanted))).all()
+    return categories if len(categories) == len(wanted) else None
+
+
+def larped_categories(form):
+    """The communities ticked on a check-in. None if any of them isn't one you're in."""
+    ticked = set(form.getlist("larped"))
+    larped = [category for category in my_categories() if category.slug in ticked]
+    return larped if len(larped) == len(ticked) else None
+
+
 def share_check_in(entry, visibility):
-    # Sharing makes a normal post, so visible_to() and the feeds cover it. It's always Overall,
-    # because an automatic post shouldn't reveal what someone is quitting.
+    # Sharing makes a normal post, so visible_to() and the feeds cover it.
     if visibility == "private":
         if entry.post:
             post_id = entry.post_id
@@ -205,8 +238,15 @@ def share_check_in(entry, visibility):
     elif entry.post:
         entry.post.visibility = visibility
         entry.post.body = entry.summary
+        entry.post.categories = list(entry.larped)
     else:
-        entry.post = Post(user_id=current_user.id, report_type="checkin", visibility=visibility, body=entry.summary)
+        entry.post = Post(
+            user_id=current_user.id,
+            report_type="checkin",
+            visibility=visibility,
+            body=entry.summary,
+            categories=list(entry.larped),
+        )
 
 
 @bp.route("/check-in", methods=["GET", "POST"])
@@ -217,23 +257,15 @@ def check_in():
 
     if request.method == "POST":
         mood = request.form.get("mood", type=int)
-        urges = request.form.get("urges", type=int)
-        on_track = request.form.get("on_track")
-        trigger = request.form.get("trigger") or None
         visibility = request.form.get("visibility")
+        larped = larped_categories(request.form)
 
-        if (
-            mood not in MOODS
-            or urges not in URGES
-            or on_track not in ("yes", "no")
-            or (trigger and trigger not in TRIGGERS)
-            or visibility not in VISIBILITIES
-        ):
-            error = "Please answer questions 1 to 3 to save."
+        if mood not in MOODS or visibility not in VISIBILITIES or larped is None:
+            error = "Pick how you're feeling from 1 to 10 to save."
         else:
             entry = entry or CheckIn(user_id=current_user.id, day=date.today())
-            entry.mood, entry.urges, entry.trigger = mood, urges, trigger
-            entry.on_track = on_track == "yes"
+            entry.mood, entry.larped = mood, larped
+            entry.on_track = len(larped) == len(current_user.memberships)
             db.session.add(entry)
             share_check_in(entry, visibility)
             try:
@@ -244,17 +276,21 @@ def check_in():
             return redirect(url_for("main.check_in"))
 
     if entry and not error and "edit" not in request.args:
-        return render_template(
-            "check_in_done.html", entry=entry, visibilities=VISIBILITIES, memberships=current_user.memberships
-        )
+        missed = [membership for membership in current_user.memberships if membership.category not in entry.larped]
+        return render_template("check_in_done.html", entry=entry, visibilities=VISIBILITIES, missed=missed)
+
+    if request.method == "POST":
+        ticked = request.form.getlist("larped")
+    else:
+        ticked = [category.slug for category in entry.larped] if entry else []
 
     page = render_template(
         "check_in.html",
         entry=entry,
         answers=request.form if request.method == "POST" else (entry.answers if entry else {}),
+        ticked=ticked,
+        categories=my_categories(),
         moods=MOODS,
-        urges=URGES,
-        triggers=TRIGGERS,
         visibilities=VISIBILITIES,
         error=error,
     )
@@ -267,13 +303,13 @@ def progress():
     week = last_seven_days()
     entries = logged_entries(week)
     summary = summarize(entries)
-    # Lowest mood, and a slip or stronger urges break a tie.
-    hardest = min(entries, key=lambda entry: (entry.mood, entry.on_track, -entry.urges)) if len(entries) > 1 else None
+    # Lowest mood, and a slip breaks a tie.
+    hardest = min(entries, key=lambda entry: (entry.mood, entry.on_track)) if len(entries) > 1 else None
     report = None
     if summary:
         report = (
             f"This week: {summary['on_track']} of {summary['count']} days in character. "
-            f"Mostly feeling {summary['mood'].lower()}."
+            f"Feeling about {summary['mood']}/10."
         )
 
     query = db.select(CheckIn).where(CheckIn.user_id == current_user.id, CheckIn.day > date.today() - timedelta(days=30))
@@ -298,10 +334,9 @@ def write():
 
     if request.method == "POST":
         body = form.get("body", "").strip()
-        slug = form.get("category")
         report_type = form.get("report_type")
         visibility = form.get("visibility")
-        category = db.session.scalar(db.select(Category).filter_by(slug=slug)) if slug else None
+        categories = chosen_categories(form)
         upload = request.files.get("photo")
         picked_photo = upload is not None and upload.filename != ""
         photo = clean_photo(upload.stream) if picked_photo else None
@@ -312,13 +347,13 @@ def write():
             error = "Write something or add a photo first."
         elif len(body) > MAX_POST_LENGTH:
             error = f"Posts can be up to {MAX_POST_LENGTH} characters."
-        elif report_type not in WRITE_TYPES or visibility not in VISIBILITIES or (slug and not category):
-            error = "Pick a valid category, type and audience."
+        elif report_type not in WRITE_TYPES or visibility not in VISIBILITIES or categories is None:
+            error = "Pick valid communities, a type and an audience."
         else:
             db.session.add(
                 Post(
                     user_id=current_user.id,
-                    category=category,
+                    categories=categories,
                     report_type=report_type,
                     visibility=visibility,
                     body=body,
@@ -326,11 +361,15 @@ def write():
                 )
             )
             db.session.commit()
-            return redirect(url_for("main.category_feed", slug=slug) if slug else url_for("main.home"))
+            # One community has its own feed to land on. Several only meet on the home feed.
+            if len(categories) == 1:
+                return redirect(url_for("main.category_feed", slug=categories[0].slug))
+            return redirect(url_for("main.home"))
 
     page = render_template(
         "write.html",
         categories=all_categories(),
+        chosen=form.getlist("category"),
         report_types=WRITE_TYPES,
         visibilities=VISIBILITIES,
         max_length=MAX_POST_LENGTH,
@@ -368,6 +407,9 @@ def believe(post_id):
     else:
         db.session.add(Reaction(user_id=current_user.id, post_id=post.id))
     db.session.commit()
+    # The page's script asks for this instead of a redirect, so pressing the button never moves the page.
+    if request.headers.get("X-Requested-With") == "fetch":
+        return {"believed": not reaction, "believers": len(post.reactions), "badges": award_badges(current_user)}
     return redirect(f"{back(url_for('main.home'))}#post-{post.id}")
 
 
@@ -417,7 +459,96 @@ def profile(username):
         posts=feed(Post.user_id == user.id),
         comments=comments,
         believed=believed,
+        pledge=user.pledge if is_me or (in_circle and user.pledge_shared) else None,
+        editing_pledge=is_me and request.args.get("edit") == "pledge",
+        max_pledge_length=MAX_PLEDGE_LENGTH,
+        badges=badge_summary(user) if is_me else None,
     )
+
+
+def save_pledge(wording, shared):
+    """Returns what's wrong with it, if anything. The caller commits."""
+    wording = wording.strip()
+    if len(wording) > MAX_PLEDGE_LENGTH:
+        return f"Pledges can be up to {MAX_PLEDGE_LENGTH} characters."
+    suggested = pledge_for(membership.category for membership in current_user.memberships)
+    profile = current_user.profile or Profile(user_id=current_user.id)
+    # Left as suggested, it keeps following the communities they join.
+    profile.pledge = None if wording == suggested else wording or None
+    profile.pledge_shared = shared
+    db.session.add(profile)
+    return None
+
+
+@bp.post("/pledge")
+@login_required
+def pledge():
+    error = save_pledge(request.form.get("pledge", ""), "shared" in request.form)
+    if error:
+        flash(error)
+    else:
+        db.session.commit()
+        flash("Pledge saved.")
+    return redirect(url_for("main.profile", username=current_user.username, _anchor="pledge"))
+
+
+def join_only(categories):
+    """Makes someone's communities exactly these, keeping the counts of the ones they stay in."""
+    keep = {category.id for category in categories}
+    for membership in current_user.memberships:
+        if membership.category_id not in keep:
+            db.session.delete(membership)
+    for category in categories:
+        if category.id not in my_memberships():
+            db.session.add(Membership(user_id=current_user.id, category_id=category.id))
+
+
+@bp.route("/setup/<int:step>", methods=["GET", "POST"])
+@login_required
+def setup(step):
+    if not 1 <= step <= SETUP_STEPS:
+        abort(404)
+    form = request.form
+    error = None
+
+    if request.method == "POST":
+        if step == 1:
+            slugs = set(form.getlist("habit"))
+            categories = db.session.scalars(db.select(Category).where(Category.slug.in_(slugs))).all()
+            if not categories or len(categories) != len(slugs):
+                error = "Choose at least one to continue."
+            else:
+                join_only(categories)
+        elif step == 2:
+            error = save_pledge(form.get("pledge", ""), "shared" in form)
+        elif form.get("visibility") not in VISIBILITIES:
+            error = "Choose who can see your progress."
+        else:
+            profile = current_user.profile or Profile(user_id=current_user.id)
+            profile.audience = form["visibility"]
+            db.session.add(profile)
+
+        if not error:
+            db.session.commit()
+            if step < SETUP_STEPS:
+                return redirect(url_for("main.setup", step=step + 1))
+            flash("You're all set. Your first check-in is ready.")
+            return redirect(url_for("main.home"))
+
+    page = render_template(
+        "setup.html",
+        step=step,
+        total=SETUP_STEPS,
+        categories=all_categories(),
+        joined=[membership.category.slug for membership in current_user.memberships],
+        ticked=form.getlist("habit") if request.method == "POST" else None,
+        pledge_text=form.get("pledge", current_user.pledge),
+        pledge_shared="shared" in form if request.method == "POST" else current_user.pledge_shared,
+        max_pledge_length=MAX_PLEDGE_LENGTH,
+        visibilities=VISIBILITIES,
+        error=error,
+    )
+    return page, 400 if error else 200
 
 
 @bp.route("/circle")

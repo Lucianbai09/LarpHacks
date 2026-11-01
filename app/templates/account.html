@@ -26,6 +26,10 @@
         {% endif %}
       {% endif %}
       <li class="list-row">
+        <div class="grow"><p class="strong">Your setup</p><p class="muted small">What you're quitting, your pledge and who can see your progress</p></div>
+        <a class="btn btn-ghost btn-sm" href="{{ url_for('main.setup', step=1) }}">Change</a>
+      </li>
+      <li class="list-row">
         <p class="grow strong">Log out of this device</p>
         {{ post_button(url_for('auth.logout'), 'Log out') }}
       </li>

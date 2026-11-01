@@ -1,6 +1,6 @@
 {% extends "base.html" %}
 {% from "_forms.html" import badge, post_button %}
-{% from "_ui.html" import avatar, days_card, icon %}
+{% from "_ui.html" import avatar, badge_medal, days_card, icon %}
 
 {% block title %}{{ user.username }} · Cove{% endblock %}
 
@@ -54,6 +54,38 @@
     {% endif %}
   </section>
 
+  {% if editing_pledge %}
+    <section class="card" id="pledge" aria-labelledby="pledge-title">
+      <h2 class="h2" id="pledge-title">Your pledge</h2>
+      <form method="post" action="{{ url_for('main.pledge') }}" class="stack mt-16">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <div>
+          <label class="field-label" for="pledge-text">Write it as if it's already true</label>
+          <textarea class="textarea" id="pledge-text" name="pledge" rows="3" maxlength="{{ max_pledge_length }}" autofocus>{{ pledge }}</textarea>
+        </div>
+        <label class="switch-row">
+          <span class="grow"><span class="strong block">Show to my circle</span><span class="muted small block">People in your circle can see it and cheer you on</span></span>
+          <input type="checkbox" role="switch" class="switch" name="shared" {% if user.pledge_shared %}checked{% endif %}>
+        </label>
+        <div class="btn-row">
+          <button class="btn btn-primary">Save pledge</button>
+          <a class="btn btn-ghost" href="{{ url_for('main.profile', username=user.username) }}">Cancel</a>
+        </div>
+      </form>
+    </section>
+  {% elif pledge %}
+    <section class="card" id="pledge" aria-labelledby="pledge-title">
+      <div class="card-head">
+        <h2 class="h2" id="pledge-title">{{ "Your pledge" if is_me else "Their pledge" }}</h2>
+        {% if is_me %}<a class="btn btn-ghost btn-sm" href="{{ url_for('main.profile', username=user.username, edit='pledge', _anchor='pledge') }}">{{ icon("pen") }}Edit</a>{% endif %}
+      </div>
+      <p class="pledge-quote mt-12 post-body">“{{ pledge }}”</p>
+      {% if is_me %}
+        <p class="privacy mt-12">{{ icon("people" if user.pledge_shared else "lock") }}<span>{{ "Your circle can see this." if user.pledge_shared else "Only you can see this." }}</span></p>
+      {% endif %}
+    </section>
+  {% endif %}
+
   {% for membership in memberships %}
     {{ days_card(membership) }}
   {% else %}
@@ -65,6 +97,25 @@
       </section>
     {% endif %}
   {% endfor %}
+
+  {% if badges %}
+    <section class="card" id="badges" aria-labelledby="all-badges-title">
+      <div class="card-head">
+        <h2 class="h2" id="all-badges-title">Badges</h2>
+        <p class="muted small">{{ badges.count }} of {{ badges.total }} earned</p>
+      </div>
+      <ul class="badge-grid">
+        {% for badge in badges.achievements %}
+          <li class="badge-item {{ 'earned' if badge.earned_on else 'locked' }}">
+            {{ badge_medal(badge) }}
+            <p class="badge-name">{{ badge.name }}</p>
+            <p class="badge-desc">{{ badge.desc }}</p>
+            <p class="badge-when">{% if badge.earned_on %}Earned {{ badge.earned_on.strftime("%b") }} {{ badge.earned_on.day }}{% else %}Locked{% endif %}</p>
+          </li>
+        {% endfor %}
+      </ul>
+    </section>
+  {% endif %}
 
   <div class="section-head"><h2 class="section-title">Entries</h2></div>
   <div class="stack">{% include "_feed.html" %}</div>

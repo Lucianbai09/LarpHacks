@@ -13,10 +13,12 @@ services:
           property: connectionString
       - key: SECRET_KEY
         generateValue: true
-      # Render asks for these when the Blueprint is first applied.
-      - key: BREVO_API_KEY
+      # Render asks for these when the Blueprint is first applied. The README explains how to get them.
+      - key: EMAIL_WEBHOOK_URL
         sync: false
-      - key: EMAIL_FROM
+      - key: TURNSTILE_SITE_KEY
+        sync: false
+      - key: TURNSTILE_SECRET_KEY
         sync: false
 
 databases:

@@ -1,0 +1,11 @@
+{% extends "base.html" %}
+
+{% block title %}Confirm your email · LarpHacks{% endblock %}
+
+{% block content %}
+  <h1>Confirm your email</h1>
+  <form method="post">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+    <button>Confirm my email</button>
+  </form>
+{% endblock %}

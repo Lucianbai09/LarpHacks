@@ -5,7 +5,7 @@
 
 {% block content %}
   <h1>Your circle</h1>
-  <p>People here read what you post to "My circle", and you read theirs.</p>
+  <p>People here read what you post to "My circle", and you read theirs. Your username is <strong>{{ current_user.username }}</strong>, so share it with friends and they can add you.</p>
 
   <form method="post" action="{{ url_for('main.circle_add') }}">
     <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">

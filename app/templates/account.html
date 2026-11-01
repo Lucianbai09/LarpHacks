@@ -11,14 +11,16 @@
   {% if current_user.is_demo %}
     <p>This is a shared demo account, so its password can't be changed and it can't be deleted.</p>
   {% else %}
-    <h2>Password</h2>
-    <p>
-      {% if current_user.password_hash %}
-        You can log in with your password or an email link. If you forgot your password, this is where you set a new one.
-      {% else %}
-        You log in with email links. Set a password if you'd also like to log in with one.
-      {% endif %}
-    </p>
+    {% if current_user.email_verified_at %}
+      <p>✓ Your email is confirmed.</p>
+    {% elif config.EMAIL_WEBHOOK_URL or config.DEBUG %}
+      <p>
+        Your email isn't confirmed yet.
+        {{ post_button(url_for('auth.resend_confirmation'), 'Send confirmation link') }}
+      </p>
+    {% endif %}
+
+    <h2>Change password</h2>
     <form method="post" action="{{ url_for('auth.set_password') }}">
       <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
       <label>

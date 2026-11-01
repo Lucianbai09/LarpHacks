@@ -1,6 +1,6 @@
 {# A one-click POST form that returns to the current page. Extra keyword arguments become hidden fields. #}
 {% macro post_button(url, label, confirm=none) %}
-  <form method="post" action="{{ url }}" class="inline"{% if confirm %} onsubmit="return confirm('{{ confirm }}')"{% endif %}>
+  <form method="post" action="{{ url }}" class="inline"{% if confirm %} data-confirm="{{ confirm }}"{% endif %}>
     <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
     <input type="hidden" name="next" value="{{ request.path }}">
     {% for name, value in kwargs.items() %}
@@ -9,3 +9,14 @@
     <button>{{ label }}</button>
   </form>
 {% endmacro %}
+
+{# Cloudflare's "are you a person" check. Shows nothing when no key is set. #}
+{% macro captcha() %}
+  {% if config.TURNSTILE_SITE_KEY %}
+    <div class="cf-turnstile" data-sitekey="{{ config.TURNSTILE_SITE_KEY }}"></div>
+    <script src="https://challenges.cloudflare.com/turnstile/v0/api.js" async defer></script>
+  {% endif %}
+{% endmacro %}
+
+{# A small label after a username. #}
+{% macro badge(person) %}{% if person.is_demo %} <small>demo</small>{% elif person.email_verified_at %} <small title="Email confirmed">✓</small>{% endif %}{% endmacro %}

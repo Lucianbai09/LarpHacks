@@ -1,4 +1,5 @@
 import re
+from datetime import datetime, timezone
 
 from flask import Blueprint, current_app, flash, redirect, render_template, request, url_for
 from flask_login import current_user, login_required, login_user, logout_user
@@ -8,22 +9,25 @@ from sqlalchemy.exc import IntegrityError
 from werkzeug.security import check_password_hash, generate_password_hash
 
 from . import db, limiter
+from .demo import DEMO_EMAIL_DOMAIN, USERS as DEMO_USERNAMES
 from .mail import send_link_email
 from .models import TERMS_VERSION, User
+from .security import MIN_PASSWORD_LENGTH, captcha_passed, password_problem
 
 bp = Blueprint("auth", __name__)
 
 USERNAME_PATTERN = re.compile(r"[a-z0-9_]{3,30}")
 EMAIL_PATTERN = re.compile(r"[^@\s]+@[^@\s]+\.[^@\s]+")
 MAX_EMAIL_LENGTH = 254
-MIN_PASSWORD_LENGTH = 6
-LINK_MAX_AGE_SECONDS = 60 * 60
 
-LOGIN_LIMIT = "10 per minute"
-EMAIL_LIMIT = "5 per minute;50 per day"
+CONFIRM_MAX_AGE_SECONDS = 7 * 24 * 60 * 60
+RESET_MAX_AGE_SECONDS = 60 * 60
 
-# Checked when no account matches, so response times don't reveal which accounts exist.
-DUMMY_PASSWORD_HASH = generate_password_hash("not a real password")
+FORM_LIMIT = "10 per minute"
+EMAIL_LIMIT = "5 per minute;30 per day"
+
+CAPTCHA_FAILED = "Please complete the captcha and try again."
+BAD_LINK = "That link has expired or was already used."
 
 
 def back(fallback):
@@ -32,119 +36,89 @@ def back(fallback):
     return target if re.fullmatch(r"/(?![/\\])[^\s\\]*", target) else fallback
 
 
-def link_serializer():
-    return URLSafeTimedSerializer(current_app.config["SECRET_KEY"], salt="email-link")
-
-
-def email_link(payload):
+def make_link(endpoint, salt, payload):
     # Built from APP_URL, not the request, because a request's Host header can be faked.
-    return current_app.config["APP_URL"] + url_for("auth.use_link", token=link_serializer().dumps(payload))
+    token = URLSafeTimedSerializer(current_app.config["SECRET_KEY"], salt=salt).dumps(payload)
+    return current_app.config["APP_URL"] + url_for(endpoint, token=token)
 
 
-def send_login_link(user, intro):
-    link = email_link({"action": "login", "user_id": user.id, "version": user.login_version})
-    send_link_email(user.email, "Your LarpHacks login link", intro, link)
+def read_link(token, salt, max_age):
+    try:
+        return URLSafeTimedSerializer(current_app.config["SECRET_KEY"], salt=salt).loads(token, max_age=max_age)
+    except BadData:
+        return None
+
+
+def send_confirmation(user):
+    link = make_link("auth.confirm_email", "confirm-email", {"user_id": user.id, "email": user.email})
+    send_link_email(user.email, "Confirm your LarpHacks email", "Confirm your email to get the checkmark on your account:", link)
+
+
+def form_username():
+    return request.form.get("username", "").strip().lower()
 
 
 def form_email():
     return request.form.get("email", "").strip().lower()
 
 
-def find_by_email(email):
-    return db.session.scalar(db.select(User).filter_by(email=email))
-
-
 @bp.route("/register", methods=["GET", "POST"])
-@limiter.limit(EMAIL_LIMIT, methods=["POST"])
+@limiter.limit(FORM_LIMIT, methods=["POST"])
 def register():
     if current_user.is_authenticated:
         return redirect(url_for("main.home"))
 
-    username = request.form.get("username", "").strip().lower()
+    username = form_username()
     email = form_email()
     error = None
 
     if request.method == "POST":
+        password = request.form.get("password", "")
+
         if not USERNAME_PATTERN.fullmatch(username):
             error = "Usernames are 3-30 letters, numbers or underscores."
+        elif username in DEMO_USERNAMES:
+            error = "That username is taken."
         elif not EMAIL_PATTERN.fullmatch(email) or len(email) > MAX_EMAIL_LENGTH:
             error = "That doesn't look like an email address."
+        elif email.endswith(f"@{DEMO_EMAIL_DOMAIN}"):
+            error = "Please use a real email address."
+        elif password_problem(password):
+            error = password_problem(password)
         elif not request.form.get("terms"):
             error = "Please agree to the Terms and Privacy Policy to continue."
+        elif not captcha_passed():
+            error = CAPTCHA_FAILED
         elif db.session.scalar(db.select(User).filter_by(username=username)):
             error = "That username is taken."
+        elif db.session.scalar(db.select(User).filter_by(email=email)):
+            error = "That email already has an account."
         else:
-            # The same page either way, so this form can't reveal who has an account here.
-            existing = find_by_email(email)
-            if existing:
-                send_login_link(existing, "Someone, hopefully you, tried to register with this email, but it already has an account. Use this link to log in:")
+            user = User(
+                username=username,
+                email=email,
+                password_hash=generate_password_hash(password),
+                terms_version=TERMS_VERSION,
+            )
+            db.session.add(user)
+            try:
+                db.session.commit()
+            except IntegrityError:
+                # Two submits at once, such as a double click. The database lets only one through.
+                db.session.rollback()
+                error = "That username or email already has an account."
             else:
-                link = email_link({"action": "register", "username": username, "email": email})
-                send_link_email(email, "Confirm your LarpHacks account", "Confirm your email to finish creating your account:", link)
-            return redirect(url_for("auth.check_email"))
+                login_user(user, remember=True)
+                send_confirmation(user)
+                flash("You're in. Join what you're quitting to start your count, and check your email for a confirmation link.")
+                return redirect(url_for("main.category_list"))
 
-    page = render_template("register.html", username=username, email=email, error=error)
+    page = render_template("register.html", username=username, email=email, min_password_length=MIN_PASSWORD_LENGTH, error=error)
     return page, 400 if error else 200
 
 
-@bp.route("/check-email")
-def check_email():
-    return render_template("check_email.html")
-
-
-@bp.route("/auth/<token>", methods=["GET", "POST"])
-def use_link(token):
-    invalid = "That link has expired or was already used. Ask for a new one here."
-    try:
-        link = link_serializer().loads(token, max_age=LINK_MAX_AGE_SECONDS)
-    except BadData:
-        flash(invalid)
-        return redirect(url_for("auth.login"))
-
-    registering = link["action"] == "register"
-    user = None
-    if not registering:
-        user = db.session.get(User, link["user_id"])
-        if not user or user.login_version != link["version"]:
-            flash(invalid)
-            return redirect(url_for("auth.login"))
-
-    # Opening a link only shows a button, because mail scanners open links and would use them up.
-    if request.method == "GET":
-        return render_template("confirm_link.html", registering=registering)
-
-    if registering:
-        user = User(username=link["username"], email=link["email"], terms_version=TERMS_VERSION)
-        db.session.add(user)
-    else:
-        user.login_version += 1
-
-    try:
-        db.session.commit()
-    except IntegrityError:
-        # The link was already used, or someone else took the username in the meantime.
-        db.session.rollback()
-        flash("That link was already used, or the username has since been taken. Please try again.")
-        return redirect(url_for("auth.register"))
-
-    login_user(user, remember=True)
-    if registering:
-        flash("You're in. Join what you're quitting to start your count.")
-        return redirect(url_for("main.category_list"))
-    return redirect(url_for("main.home"))
-
-
-@bp.post("/login/link")
-@limiter.limit(EMAIL_LIMIT)
-def login_link():
-    user = find_by_email(form_email())
-    if user:
-        send_login_link(user, "Use this link to log in:")
-    return redirect(url_for("auth.check_email"))
-
-
 @bp.route("/login", methods=["GET", "POST"])
-@limiter.limit(LOGIN_LIMIT, methods=["POST"])
+@limiter.limit(FORM_LIMIT, methods=["POST"])
 def login():
     if current_user.is_authenticated:
         return redirect(url_for("main.home"))
@@ -154,8 +128,7 @@ def login():
 
     if request.method == "POST":
         user = db.session.scalar(db.select(User).where(or_(User.username == identifier, User.email == identifier)))
-        stored_hash = user.password_hash if user and user.password_hash else DUMMY_PASSWORD_HASH
-        if check_password_hash(stored_hash, request.form.get("password", "")) and stored_hash != DUMMY_PASSWORD_HASH:
+        if user and check_password_hash(user.password_hash, request.form.get("password", "")):
             login_user(user, remember=True)
             return redirect(back(url_for("main.home")))
         error = "Wrong username, email or password."
@@ -171,10 +144,90 @@ def logout():
     return redirect(url_for("main.home"))
 
 
+@bp.route("/confirm-email/<token>", methods=["GET", "POST"])
+def confirm_email(token):
+    link = read_link(token, "confirm-email", CONFIRM_MAX_AGE_SECONDS)
+    user = db.session.get(User, link["user_id"]) if link else None
+    if not user or user.email != link["email"]:
+        flash(BAD_LINK)
+        return redirect(url_for("main.home"))
+
+    # Opening a link only shows a button, because mail scanners open links by themselves.
+    if request.method == "GET":
+        return render_template("confirm_email.html")
+
+    if not user.email_verified_at:
+        user.email_verified_at = datetime.now(timezone.utc)
+        db.session.commit()
+    flash("Your email is confirmed.")
+    return redirect(url_for("main.home"))
+
+
+@bp.route("/forgot-password", methods=["GET", "POST"])
+@limiter.limit(EMAIL_LIMIT, methods=["POST"])
+def forgot_password():
+    if current_user.is_authenticated:
+        return redirect(url_for("auth.account"))
+
+    error = None
+
+    if request.method == "POST":
+        if not captcha_passed():
+            error = CAPTCHA_FAILED
+        else:
+            user = db.session.scalar(db.select(User).filter_by(email=form_email()))
+            if user and not user.is_demo:
+                link = make_link("auth.reset_password", "reset-password", {"user_id": user.id, "fingerprint": user.password_fingerprint})
+                send_link_email(user.email, "Reset your LarpHacks password", "Use this link to choose a new password. It works once and expires in 1 hour:", link)
+            # The same message either way, so this form can't reveal who has an account here.
+            flash("If that email has an account, a reset link is on its way. Check your spam folder too.")
+            return redirect(url_for("auth.forgot_password"))
+
+    page = render_template("forgot_password.html", error=error)
+    return page, 400 if error else 200
+
+
+@bp.route("/reset-password/<token>", methods=["GET", "POST"])
+@limiter.limit(FORM_LIMIT, methods=["POST"])
+def reset_password(token):
+    link = read_link(token, "reset-password", RESET_MAX_AGE_SECONDS)
+    user = db.session.get(User, link["user_id"]) if link else None
+    # The link holds a fingerprint of the old password, so it stops working once that changes.
+    if not user or user.is_demo or user.password_fingerprint != link["fingerprint"]:
+        flash(BAD_LINK)
+        return redirect(url_for("auth.forgot_password"))
+
+    error = None
+    if request.method == "POST":
+        password = request.form.get("password", "")
+        error = password_problem(password)
+        if not error:
+            user.password_hash = generate_password_hash(password)
+            # They got here through their inbox, which proves the email is theirs.
+            user.email_verified_at = user.email_verified_at or datetime.now(timezone.utc)
+            db.session.commit()
+            login_user(user, remember=True)
+            flash("Password saved.")
+            return redirect(url_for("main.home"))
+
+    page = render_template("reset_password.html", min_password_length=MIN_PASSWORD_LENGTH, error=error)
+    return page, 400 if error else 200
+
+
 @bp.route("/account")
 @login_required
 def account():
     return render_template("account.html", min_password_length=MIN_PASSWORD_LENGTH)
+
+
+@bp.post("/account/confirm-email")
+@login_required
+@limiter.limit(EMAIL_LIMIT)
+def resend_confirmation():
+    if not current_user.is_demo and not current_user.email_verified_at:
+        send_confirmation(current_user)
+        flash("Confirmation link sent. Check your spam folder too.")
+    return redirect(url_for("auth.account"))
 
 
 @bp.post("/account/password")
@@ -183,14 +236,15 @@ def set_password():
     password = request.form.get("password", "")
     if current_user.is_demo:
         flash("Demo accounts can't be changed.")
-    elif len(password) < MIN_PASSWORD_LENGTH:
-        flash(f"Passwords need at least {MIN_PASSWORD_LENGTH} characters.")
+    elif password_problem(password):
+        flash(password_problem(password))
     else:
-        current_user.password_hash = generate_password_hash(password)
-        # Any login links still sitting in an inbox stop working.
-        current_user.login_version += 1
+        user = current_user._get_current_object()
+        user.password_hash = generate_password_hash(password)
         db.session.commit()
-        flash("Password saved.")
+        # Changing the password logs out every device, so log this one back in.
+        login_user(user, remember=True)
+        flash("Password saved. Any other devices have been logged out.")
     return redirect(url_for("auth.account"))
 
 

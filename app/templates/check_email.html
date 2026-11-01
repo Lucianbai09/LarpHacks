@@ -1,9 +1,0 @@
-{% extends "base.html" %}
-
-{% block title %}Check your email · LarpHacks{% endblock %}
-
-{% block content %}
-  <h1>Check your email</h1>
-  <p>If everything checks out, a link is on its way. It works once and expires in 1 hour.</p>
-  <p>Not there after a minute? Check spam, then try again from <a href="{{ url_for('auth.login') }}">Log in</a> or <a href="{{ url_for('auth.register') }}">Register</a>.</p>
-{% endblock %}

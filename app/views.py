@@ -1,6 +1,6 @@
 from datetime import date
 
-from flask import Blueprint, current_app, flash, redirect, render_template, request, url_for
+from flask import Blueprint, abort, flash, redirect, render_template, request, url_for
 from flask_login import current_user, login_required
 from sqlalchemy import func
 
@@ -25,6 +25,8 @@ from .models import (
 bp = Blueprint("main", __name__)
 
 FEED_LIMIT = 50
+MAX_POST_LENGTH = 5000
+MAX_COMMENT_LENGTH = 2000
 
 
 def all_categories():
@@ -38,6 +40,13 @@ def get_category(slug):
 def get_visible_post(post_id):
     # A post you can't see is a 404, so its existence doesn't leak either.
     return db.first_or_404(db.select(Post).where(Post.id == post_id, visible_to(current_user)))
+
+
+def get_writable_post(post_id):
+    post = get_visible_post(post_id)
+    if not post.open_to(current_user):
+        abort(403)
+    return post
 
 
 def my_memberships():
@@ -71,12 +80,12 @@ def home():
 
 @bp.route("/terms")
 def terms():
-    return render_template("terms.html", terms_version=TERMS_VERSION, contact_email=current_app.config["EMAIL_FROM"])
+    return render_template("terms.html", terms_version=TERMS_VERSION)
 
 
 @bp.route("/privacy")
 def privacy():
-    return render_template("privacy.html", terms_version=TERMS_VERSION, contact_email=current_app.config["EMAIL_FROM"])
+    return render_template("privacy.html", terms_version=TERMS_VERSION)
 
 
 @bp.route("/categories")
@@ -141,6 +150,8 @@ def write():
 
         if not body:
             error = "Write something first."
+        elif len(body) > MAX_POST_LENGTH:
+            error = f"Posts can be up to {MAX_POST_LENGTH} characters."
         elif report_type not in REPORT_TYPES or visibility not in VISIBILITIES or (slug and not category):
             error = "Pick a valid category, type and audience."
         else:
@@ -155,6 +166,7 @@ def write():
         categories=all_categories(),
         report_types=REPORT_TYPES,
         visibilities=VISIBILITIES,
+        max_length=MAX_POST_LENGTH,
         form=form,
         error=error,
     )
@@ -163,13 +175,13 @@ def write():
 
 @bp.route("/posts/<int:post_id>")
 def post_detail(post_id):
-    return render_template("post.html", post=get_visible_post(post_id))
+    return render_template("post.html", post=get_visible_post(post_id), max_length=MAX_COMMENT_LENGTH)
 
 
 @bp.post("/posts/<int:post_id>/believe")
 @login_required
 def believe(post_id):
-    post = get_visible_post(post_id)
+    post = get_writable_post(post_id)
     reaction = db.session.get(Reaction, (current_user.id, post.id))
     if reaction:
         db.session.delete(reaction)
@@ -182,9 +194,11 @@ def believe(post_id):
 @bp.post("/posts/<int:post_id>/comment")
 @login_required
 def comment(post_id):
-    post = get_visible_post(post_id)
+    post = get_writable_post(post_id)
     body = request.form.get("body", "").strip()
-    if body:
+    if len(body) > MAX_COMMENT_LENGTH:
+        flash(f"Comments can be up to {MAX_COMMENT_LENGTH} characters.")
+    elif body:
         db.session.add(Comment(post_id=post.id, user_id=current_user.id, body=body))
         db.session.commit()
     return redirect(url_for("main.post_detail", post_id=post.id))
@@ -196,6 +210,7 @@ def profile(username):
     is_me = current_user == user
     link = circle_link(current_user, user) if current_user.is_authenticated and not is_me else None
     in_circle = link is not None and link.accepted
+    can_link = current_user.is_authenticated and not is_me and current_user.can_link_with(user)
 
     comments = []
     believed = []
@@ -216,6 +231,7 @@ def profile(username):
         user=user,
         is_me=is_me,
         link=link,
+        can_link=can_link,
         # What someone is quitting is sensitive, so strangers don't get to see it.
         memberships=user.memberships if is_me or in_circle else [],
         posts=feed(Post.user_id == user.id),
@@ -250,6 +266,8 @@ def circle_add():
     other = find_user_from_form()
     if not other or other == current_user:
         flash("No one else goes by that username.")
+    elif not current_user.can_link_with(other):
+        flash("Demo accounts and real accounts can't be in the same circle.")
     else:
         link = circle_link(current_user, other)
         if not link:

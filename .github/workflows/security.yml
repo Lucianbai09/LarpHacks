@@ -1,0 +1,55 @@
+name: Security checks
+
+on:
+  push:
+  pull_request:
+  schedule:
+    # Every Monday, so newly discovered vulnerabilities show up even when nobody is pushing code.
+    - cron: "0 6 * * 1"
+
+permissions:
+  contents: read
+
+jobs:
+  checks:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:18
+        env:
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: larphacks_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    env:
+      TEST_DATABASE_URL: postgresql+psycopg://postgres:postgres@localhost:5432/larphacks_test
+      DATABASE_URL: postgresql://postgres:postgres@localhost:5432/larphacks_test
+      SECRET_KEY: only-for-ci
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
+        with:
+          python-version-file: .python-version
+      - run: pip install -r requirements-dev.txt
+
+      - name: Tests, including the rules every new route must follow
+        run: pytest
+
+      - name: Known vulnerabilities in our dependencies
+        run: pip-audit -r requirements.txt
+
+      - name: Unsafe patterns in our code
+        run: bandit -r app -q
+
+      - name: Start the site the way Render does
+        env:
+          RENDER: "true"
+        run: |
+          flask init-db && flask seed-demo
+          gunicorn run:app --bind 127.0.0.1:8000 --daemon
+          curl --silent --show-error --fail --retry 15 --retry-connrefused --retry-delay 1 http://127.0.0.1:8000/ > /dev/null

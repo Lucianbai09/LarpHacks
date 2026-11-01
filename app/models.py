@@ -1,3 +1,4 @@
+import hashlib
 from datetime import date
 
 from flask_login import UserMixin
@@ -36,10 +37,10 @@ class User(UserMixin, db.Model):
     id = db.Column(db.Integer, primary_key=True)
     username = db.Column(db.String(30), unique=True, nullable=False)
     email = db.Column(db.String(254), unique=True, nullable=False)
-    # NULL until someone chooses to set a password. Email links always work.
-    password_hash = db.Column(db.String(255))
-    # Goes up whenever a login link is used, so each link only works once.
-    login_version = db.Column(db.Integer, nullable=False, default=0)
+    password_hash = db.Column(db.String(255), nullable=False)
+    email_verified_at = db.Column(db.DateTime(timezone=True))
+    # Only `flask seed-demo` sets this. Demo passwords are public, so these accounts are walled off from real ones.
+    is_demo = db.Column(db.Boolean, nullable=False, default=False)
     terms_version = db.Column(db.String(20), nullable=False)
     terms_accepted_at = db.Column(db.DateTime(timezone=True), server_default=func.now(), nullable=False)
     created_at = db.Column(db.DateTime(timezone=True), server_default=func.now(), nullable=False)
@@ -47,14 +48,23 @@ class User(UserMixin, db.Model):
     memberships = db.relationship("Membership")
 
     @property
-    def is_demo(self):
-        # Their password is public, so nobody gets to lock them or delete them.
-        return self.email.endswith("@example.com")
+    def password_fingerprint(self):
+        return hashlib.sha256(self.password_hash.encode()).hexdigest()[:16]
+
+    def get_id(self):
+        # Includes the password, so changing it logs out every other device.
+        return f"{self.id}:{self.password_fingerprint}"
+
+    def can_link_with(self, other):
+        # A demo account in a real circle would let anyone read that circle's posts.
+        return self.is_demo == other.is_demo
 
 
 @login_manager.user_loader
-def load_user(user_id):
-    return db.session.get(User, int(user_id))
+def load_user(session_id):
+    user_id, _, fingerprint = session_id.partition(":")
+    user = db.session.get(User, int(user_id))
+    return user if user and user.password_fingerprint == fingerprint else None
 
 
 class Category(db.Model):
@@ -114,6 +124,10 @@ class Post(db.Model):
 
     def believed_by(self, user):
         return user.is_authenticated and any(r.user_id == user.id for r in self.reactions)
+
+    def open_to(self, user):
+        # Demo passwords are public, so those accounts can't write on real people's posts.
+        return not user.is_demo or self.author.is_demo
 
 
 class Comment(db.Model):

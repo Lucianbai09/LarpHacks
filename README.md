@@ -10,10 +10,11 @@ In PowerShell, from the repo root:
 
 ```powershell
 python -m venv .venv
-.venv\Scripts\python.exe -m pip install -r requirements.txt
+.venv\Scripts\python.exe -m pip install -r requirements-dev.txt
 
-# Prompts for your Postgres password.
+# Each prompts for your Postgres password. The second is only used by the tests.
 & "C:\Program Files\PostgreSQL\18\bin\createdb.exe" -U postgres larphacks
+& "C:\Program Files\PostgreSQL\18\bin\createdb.exe" -U postgres larphacks_test
 
 # Then fill in YOUR_PASSWORD and YOUR_SECRET_KEY in .env.
 copy .env.example .env
@@ -26,40 +27,73 @@ That setup only happens once. Other `flask` commands below run the same way, thr
 
 **To start the site from then on, press F5 in VS Code.** It runs `run.py` from whichever file you have open and opens http://127.0.0.1:5000 in your browser. Saved changes reload by themselves, and the red square in VS Code's toolbar stops the site.
 
+If the site ever stops responding after an error, VS Code's debugger may have paused it, so press the red square and then F5. For a live demo, use **Ctrl+F5**, which runs without the debugger.
+
 Outside VS Code, run `.venv\Scripts\python.exe run.py`.
 
 ## Demo accounts
 
-`flask seed-demo` is optional and adds three accounts, all with the password `larping123`. Anyone can log in to them because the password is public, so only use them for fake data. Their passwords can't be changed and they can't be deleted, so one visitor can't break the demo for everyone else.
+`flask seed-demo` is optional and adds six accounts with made-up posts, all with the password `larping123`.
 
 | Account | Shows |
 | --- | --- |
-| `maya` | Has a post for each audience, and a circle request from `sam` waiting |
+| `maya` | Has a post for each audience, and a circle request from `sam` to accept live |
 | `theo` | In `maya`'s circle, so they can read `maya`'s circle posts but not the private one |
 | `sam` | Not in a circle yet, so they only see community posts |
+| `jonas`, `priya` | A second circle, with their own circle and private posts |
+| `lena` | Has a circle request waiting on `theo` |
+
+**Demo data can't affect real people.** The password is public, so demo accounts are walled off:
+
+- They're labelled "demo" everywhere, and marked `is_demo` in the database.
+- They can't join a real person's circle, comment on or react to real posts, or change their own password or delete themselves.
+- Seeding only ever adds demo rows, does nothing if they're already there, and refuses to run if a real account has one of their usernames.
+- `flask clear-demo` deletes demo accounts and everything attached to them, including real people's comments on demo posts. Real accounts, posts and circles stay.
+
+Real people can't register those usernames or an `@example.com` email.
 
 ## Accounts and email
 
-There's one email flow: a signed link that works once and expires in an hour. It confirms new accounts, logs people in without a password, and is how people reset a password. An account only exists once its link is clicked, so bots that can't receive email leave nothing behind.
+Registering takes a username, an email and a password, and each email can only have one account. Accounts work straight away. A confirmation link is emailed too, and clicking it adds a checkmark next to your name. Forgot password emails a link that works once and expires in an hour.
 
-Passwords are optional, set from the account page, with a 6-character minimum. Register, log in and email links are rate limited per IP address.
+**Locally, email setup is optional.** F5 always shows each link on the page too, so local testing works with `EMAIL_WEBHOOK_URL` blank or broken. This only happens in debug mode, so never on Render.
 
-**Locally, you don't need an email account.** With `BREVO_API_KEY` blank, F5 shows each link on the page instead of sending it. This only happens in debug mode, so never on Render.
+**To send real email for free,** use a small Google Apps Script that sends from a Gmail account. It handles 100 emails a day, needs no card or domain, and works on Render, whose free plan blocks SMTP. Recipients see that Gmail address as the sender, so you may want a team one.
 
-**To send real email:**
+1. Signed in to that Gmail account, go to [script.google.com](https://script.google.com) and create a new project.
+2. Replace everything in the editor with this, then save:
 
-1. Sign up at [brevo.com](https://www.brevo.com). The free plan sends 300 emails a day.
-2. Add and verify a sender address in Brevo. Emails from a domain you own are less likely to land in spam than ones from a Gmail address.
-3. Create an API key in Brevo.
-4. Put the key in `BREVO_API_KEY` and the sender address in `EMAIL_FROM`, in `.env` locally and in the environment settings on Render.
+   ```js
+   function doPost(e) {
+     const email = JSON.parse(e.postData.contents);
+     MailApp.sendEmail({ to: email.to, subject: email.subject, body: email.body, name: "LarpHacks" });
+     return ContentService.createTextOutput("sent");
+   }
+   ```
 
-If emails don't arrive, check the logs. If Brevo reports an unrecognised IP address, turn off IP blocking in its security settings, because Render's addresses change.
+3. Choose **Deploy > New deployment**, click the gear icon, and pick **Web app**.
+4. Set **Execute as** to **Me** and **Who has access** to **Anyone**, then click **Deploy**.
+5. Approve the permissions. Google warns that the app is unverified because it's your own script, so choose **Advanced**, then go to the project and allow it.
+6. Back in the editor, pick `doPost` in the function dropdown and click **Run**, approving anything it asks. A red error about `postData` is expected. Skipping this can leave the script answering every request with a 403 "You need access" page.
+7. Copy the **Web app URL** and paste it after `EMAIL_WEBHOOK_URL=` in `.env`, then save. The site restarts by itself.
 
-To switch provider, change `deliver()` in `app/mail.py`. It uses a web API because Render's free plan blocks SMTP.
+To check it, open the URL in a private browser window. `Script function not found: doGet` means it's working, because the script only handles POST requests.
+
+Treat that URL like a password, because anyone who has it can send email from that account.
+
+If emails don't arrive, check spam, then look for an error in VS Code's Debug Console. To switch provider, change `deliver()` in `app/mail.py`.
+
+## Security
+
+`SECURITY.md` lists what's protected, what runs automatically, and the checklist for every new feature.
+
+**Captcha:** locally, `.env` uses Cloudflare's public test keys, so you'll see a "Testing only" widget that always passes. For the real thing, add a free Turnstile widget in the [Cloudflare dashboard](https://dash.cloudflare.com/?to=/:account/turnstile) with your Render hostname, and put its keys in Render's environment settings. With no keys set, the captcha is off.
+
+**Tests:** in VS Code, open the **Testing** panel (the flask icon) and click **Run Tests**. They run against the separate `larphacks_test` database and wipe it each time, so create that once with `createdb` as above.
 
 ## Terms and privacy
 
-`/terms` and `/privacy` are starting drafts written without a lawyer. They describe what the site actually does, so update them when that changes, and get them reviewed before real people rely on them. When they change, update `TERMS_VERSION` in `app/models.py`.
+`/terms` and `/privacy` are simple drafts for the hackathon demo, written without a lawyer. They describe what the site does, so update them if that changes, along with `TERMS_VERSION` in `app/models.py`.
 
 ## Who can see a post
 
@@ -81,8 +115,11 @@ Circle membership is mutual and needs an accepted request. Communities on a prof
 | `render.yaml` | Render's setup: the web service and its database |
 | `app/__init__.py` | App factory and the `flask` commands |
 | `app/models.py` | Tables, the category seed list, and `visible_to()` |
-| `app/auth.py` | Register, log in, email links, account page |
+| `app/auth.py` | Register, log in, email confirmation, password reset, account page |
+| `app/security.py` | Captcha, password rules, security headers |
 | `app/mail.py` | Sends email |
+| `tests/` | Automated tests, including rules every new route must follow |
+| `.github/` | Weekly security checks and dependency updates |
 | `app/views.py` | Feeds, write, posts, communities, profiles, circles |
 | `app/demo.py` | Demo data for `flask seed-demo` |
 | `app/templates/` | Jinja templates. `_post.html` is one post, `_forms.html` has the one-click button macro |
@@ -96,8 +133,10 @@ Circle membership is mutual and needs an accepted request. Communities on a prof
 
 ## Deploy on Render
 
+Do this once the tables are final, because there are no migrations.
+
 1. Push the repo to GitHub. `.env` stays out of git, so your local password doesn't go with it.
-2. In the Render dashboard, choose **New > Blueprint**, pick the repo, and apply it. Enter your Brevo details when it asks. Without them, nobody can register or use email links, but password logins still work.
+2. In the Render dashboard, choose **New > Blueprint**, pick the repo, and apply it. Paste your email script URL and Turnstile keys when it asks. Without the email URL, confirmation and password reset emails don't send. Without the keys, the captcha is off. Everything else still works.
 
 `render.yaml` creates the site and its Postgres database, generates `SECRET_KEY`, and connects them. New tables, categories and the demo accounts are added each time the site starts. Before real people use the site, remove `flask seed-demo` from `startCommand` and delete the demo accounts.
 

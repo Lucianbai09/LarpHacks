@@ -26,7 +26,7 @@
     </label>
     <label>
       How's it going?
-      <textarea name="body" rows="8" required>{{ form.get("body", "") }}</textarea>
+      <textarea name="body" rows="8" maxlength="{{ max_length }}" required>{{ form.get("body", "") }}</textarea>
     </label>
     <fieldset>
       <legend>Who can see this?</legend>

@@ -3,7 +3,7 @@ import re
 from datetime import timedelta
 
 from dotenv import load_dotenv
-from flask import Flask
+from flask import Flask, request
 from flask_limiter import Limiter
 from flask_limiter.util import get_remote_address
 from flask_login import LoginManager
@@ -15,11 +15,17 @@ db = SQLAlchemy()
 login_manager = LoginManager()
 login_manager.login_view = "auth.login"
 csrf = CSRFProtect()
+# Anything that changes data is limited by default, including routes added later.
 # Memory is fine for one server. Point storage_uri at Redis to run more than one.
-limiter = Limiter(key_func=get_remote_address, storage_uri="memory://")
+limiter = Limiter(
+    key_func=get_remote_address,
+    storage_uri="memory://",
+    default_limits=["60 per minute"],
+    default_limits_exempt_when=lambda: request.method in ("GET", "HEAD", "OPTIONS"),
+)
 
 
-def create_app():
+def create_app(config=None):
     # The project's .env wins over any DATABASE_URL set globally on the machine.
     load_dotenv(override=True)
 
@@ -31,12 +37,14 @@ def create_app():
     app.config["SECRET_KEY"] = os.environ["SECRET_KEY"]
     app.config["SESSION_COOKIE_SAMESITE"] = "Lax"
     app.config["REMEMBER_COOKIE_SAMESITE"] = "Lax"
-    # Email links are a trip to your inbox, so stay logged in between visits.
     app.config["REMEMBER_COOKIE_DURATION"] = timedelta(days=30)
     # Tokens last as long as the session, so a page left open keeps working.
     app.config["WTF_CSRF_TIME_LIMIT"] = None
-    app.config["BREVO_API_KEY"] = os.environ.get("BREVO_API_KEY")
-    app.config["EMAIL_FROM"] = os.environ.get("EMAIL_FROM")
+    # There are no file uploads, so no honest request is anywhere near this size.
+    app.config["MAX_CONTENT_LENGTH"] = 1024 * 1024
+    app.config["EMAIL_WEBHOOK_URL"] = os.environ.get("EMAIL_WEBHOOK_URL")
+    app.config["TURNSTILE_SITE_KEY"] = os.environ.get("TURNSTILE_SITE_KEY")
+    app.config["TURNSTILE_SECRET_KEY"] = os.environ.get("TURNSTILE_SECRET_KEY")
     app.config["APP_URL"] = os.environ.get("RENDER_EXTERNAL_URL", "http://127.0.0.1:5000")
 
     # Render sets RENDER and serves over HTTPS behind its own proxy. Local runs are plain HTTP.
@@ -45,15 +53,18 @@ def create_app():
         app.config["REMEMBER_COOKIE_SECURE"] = True
         app.wsgi_app = ProxyFix(app.wsgi_app)
 
+    app.config.update(config or {})
+
     db.init_app(app)
     login_manager.init_app(app)
     csrf.init_app(app)
     limiter.init_app(app)
 
-    from . import auth, demo, models, views
+    from . import auth, demo, models, security, views
 
     app.register_blueprint(auth.bp)
     app.register_blueprint(views.bp)
+    app.after_request(security.add_security_headers)
 
     @app.cli.command("init-db")
     def init_db():
@@ -62,7 +73,12 @@ def create_app():
 
     @app.cli.command("seed-demo")
     def seed_demo():
-        """Add demo accounts and posts. Safe to re-run."""
+        """Add demo accounts and posts. Never touches real accounts. Safe to re-run."""
         demo.seed()
+
+    @app.cli.command("clear-demo")
+    def clear_demo():
+        """Delete demo accounts and everything attached to them. Real accounts stay."""
+        demo.clear()
 
     return app

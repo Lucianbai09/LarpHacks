@@ -1,4 +1,5 @@
 {% extends "base.html" %}
+{% from "_forms.html" import badge %}
 
 {% block title %}{{ post.author.username }}'s post · LarpHacks{% endblock %}
 
@@ -8,23 +9,25 @@
   <h2>Comments</h2>
   {% for comment in post.comments %}
     <p>
-      <a href="{{ url_for('main.profile', username=comment.author.username) }}"><strong>{{ comment.author.username }}</strong></a>
+      <a href="{{ url_for('main.profile', username=comment.author.username) }}"><strong>{{ comment.author.username }}</strong></a>{{ badge(comment.author) }}
       <span class="post-body">{{ comment.body }}</span>
     </p>
   {% else %}
     <p>No comments yet.</p>
   {% endfor %}
 
-  {% if current_user.is_authenticated %}
+  {% if not current_user.is_authenticated %}
+    <p><a href="{{ url_for('auth.login', next=request.path) }}">Log in to comment</a></p>
+  {% elif post.open_to(current_user) %}
     <form method="post" action="{{ url_for('main.comment', post_id=post.id) }}">
       <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
       <label>
         Add a comment
-        <textarea name="body" rows="3" required></textarea>
+        <textarea name="body" rows="3" maxlength="{{ max_length }}" required></textarea>
       </label>
       <button>Comment</button>
     </form>
   {% else %}
-    <p><a href="{{ url_for('auth.login', next=request.path) }}">Log in to comment</a></p>
+    <p>Demo accounts can't comment on real people's posts.</p>
   {% endif %}
 {% endblock %}

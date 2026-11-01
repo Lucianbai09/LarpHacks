@@ -1,8 +1,18 @@
 {% from "_forms.html" import post_button %}
 {% from "_ui.html" import icon %}
 <div class="section-head"><h2 class="section-title">Communities</h2></div>
+{# Yours first, then Overall, then the rest. `none` stands in for Overall. #}
+{% set joined = categories|selectattr("id", "in", memberships)|list %}
+{% set others = categories|rejectattr("id", "in", memberships)|list %}
 <div class="comm-grid">
-  {% for item in categories %}
+  {% for item in joined + [none] + others %}
+    {% if item is none %}
+      <div class="comm-tile">
+        {{ icon("sparkle") }}
+        <a class="comm-name" href="{{ url_for('main.home') }}">Overall</a>
+        <span class="comm-meta">Posts for everyone, on your home feed</span>
+      </div>
+    {% else %}
     <div class="comm-tile{% if category is defined and category.id == item.id %} selected{% endif %}">
       {{ icon(item.icon) }}
       <a class="comm-name" href="{{ url_for('main.category_feed', slug=item.slug) }}">{{ item.name }}</a>
@@ -15,11 +25,7 @@
         <span class="comm-meta">Read the posts</span>
       {% endif %}
     </div>
+    {% endif %}
   {% endfor %}
-  <div class="comm-tile">
-    {{ icon("sparkle") }}
-    <a class="comm-name" href="{{ url_for('main.home') }}">Overall</a>
-    <span class="comm-meta">Posts for everyone, on your home feed</span>
-  </div>
 </div>
 <p class="privacy">{{ icon("globe") }}<span>Posts set to Community can be read by anyone, even without an account.</span></p>

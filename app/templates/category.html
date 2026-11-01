@@ -26,8 +26,16 @@
       {% include "_communities.html" %}
     </div>
     <div class="col">
-      <div class="section-head"><h2 class="section-title">Stories</h2></div>
-      {% include "_feed.html" %}
+      <div class="section-head"><h2 class="section-title">Stories in {{ category.name }}</h2></div>
+      {% for post in posts %}
+        {% include "_post.html" %}
+      {% else %}
+        <section class="card empty">
+          <div class="empty-icon">{{ icon(category.icon) }}</div>
+          <h2 class="h2">No stories in {{ category.name }} yet</h2>
+          <p class="muted mt-8">Be the first to share how it's going.</p>
+        </section>
+      {% endfor %}
     </div>
   </div>
 {% endblock %}

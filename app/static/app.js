@@ -111,11 +111,11 @@ const PIXEL = {
   phone: ["XXXXXXXX", "X......X", "X.XXXX.X", "X.X..X.X", "X.X..X.X", "X.X..X.X", "X.X..X.X", "X.XXXX.X", "X......X", "X..XX..X", "X......X", "XXXXXXXX"],
   vape: [".XXX..XXX.", "X...XX...X", "X........X", ".XXXXXXXX.", "..........", "....XX....", "...XXXX...", "...X..X...", "...X..X...", "...XXXX...", "...X..X...", "...XXXX..."],
   beer: [".XX..XX....", "XXXXXXXXX..", "X.......XXX", "X.X.X.X.X.X", "X.X.X.X.X.X", "X.X.X.X.X.X", "X.......XXX", "X.......X..", "XXXXXXXXX.."],
-  wine: ["XXXXXXXXX", "X.......X", "XXXXXXXXX", "XXXXXXXXX", ".XXXXXXX.", "..XXXXX..", "....X....", "....X....", "....X....", "..XXXXX.."],
+  bag: ["...XXXXX...", "..X.....X..", "..X.....X..", "XXXXXXXXXXX", "X.........X", "X..X...X..X", "X.........X", "X.........X", "X.........X", "X.........X", "XXXXXXXXXXX"],
   cigarette: ["............X.", "...........X..", "............X.", "...........X..", "XXXXXXXXXXXXXX", "X......X...XXX", "X......X...XXX", "XXXXXXXXXXXXXX"],
   gamepad: [".XXXXXXXXXXXX.", "X............X", "X..X......X..X", "X.XXX....X.X.X", "X..X......X..X", "X....XXXX....X", "X...X....X...X", ".XXX......XXX."],
   dice: [".XXXXXXXXXX.", "X..........X", "X.XX....XX.X", "X.XX....XX.X", "X..........X", "X....XX....X", "X....XX....X", "X..........X", "X.XX....XX.X", "X.XX....XX.X", "X..........X", ".XXXXXXXXXX."],
-  coffee: [".X..X......", "X..X.......", ".X..X......", "...........", "XXXXXXXXX..", "X.......XXX", "X.......X.X", "X.......XXX", "X.......X..", ".X.....X...", "..XXXXX...."],
+  can: [".XXXXXX.", "XXXXXXXX", "X......X", "X....X.X", "X...XX.X", "X..XX..X", "X.XXXX.X", "X..XX..X", "X.XX...X", "X.X....X", "XXXXXXXX", ".XXXXXX."],
 };
 
 // x/y place each icon around the headline on wide screens, xs/ys in a band above it on phones.
@@ -126,8 +126,8 @@ const FLOATERS = [
   { ic: "cigarette", x: "5%", y: "82%", xs: "52%", ys: "14%", dx: "-8px", dy: "-12px", dur: "6.9s", delay: "-4.6s", depth: 0.9 },
   { ic: "gamepad", x: "88%", y: "7%", xs: "72%", ys: "52%", dx: "-10px", dy: "12px", dur: "7.2s", delay: "-0.6s", depth: 1.2, alt: true },
   { ic: "dice", x: "96%", y: "31%", xs: "89%", ys: "10%", dx: "8px", dy: "-10px", dur: "6.1s", delay: "-2.8s", depth: 0.6 },
-  { ic: "coffee", x: "87%", y: "57%", dx: "12px", dy: "10px", dur: "8.6s", delay: "-5.2s", depth: 1.4, alt: true, wideOnly: true },
-  { ic: "wine", x: "95%", y: "82%", dx: "-10px", dy: "-8px", dur: "7.4s", delay: "-1.8s", depth: 0.8, wideOnly: true },
+  { ic: "can", x: "87%", y: "57%", dx: "12px", dy: "10px", dur: "8.6s", delay: "-5.2s", depth: 1.4, alt: true, wideOnly: true },
+  { ic: "bag", x: "95%", y: "82%", dx: "-10px", dy: "-8px", dur: "7.4s", delay: "-1.8s", depth: 0.8, wideOnly: true },
 ];
 
 function drawFloaters(field) {
@@ -153,10 +153,9 @@ function drawFloaters(field) {
   });
 }
 
-// Pointer parallax, scroll drift, and the window's tabs walking through the feature cards.
-function animateLanding(hero, stage) {
+// Icons lean away from the pointer, pause off screen and bounce when tapped.
+function animateHero(hero) {
   const motion = !matchMedia("(prefers-reduced-motion: reduce)").matches;
-
   if (motion && matchMedia("(pointer: fine)").matches) {
     hero.addEventListener("pointermove", (event) => {
       const box = hero.getBoundingClientRect();
@@ -168,50 +167,7 @@ function animateLanding(hero, stage) {
       hero.style.setProperty("--py", 0);
     });
   }
-
-  if (motion) {
-    let ticking = false;
-    const onScroll = () => {
-      if (ticking) return;
-      ticking = true;
-      requestAnimationFrame(() => {
-        ticking = false;
-        const box = stage.getBoundingClientRect();
-        const progress = Math.min(1, Math.max(0, (innerHeight - box.top) / (innerHeight + box.height)));
-        stage.style.setProperty("--s", (progress - 0.5).toFixed(3));
-      });
-    };
-    addEventListener("scroll", onScroll, { passive: true });
-    onScroll();
-  }
-
-  // Loops pause while they're off screen.
-  const observer = new IntersectionObserver((entries) => {
-    entries.forEach((entry) => entry.target.classList.toggle("paused", !entry.isIntersecting));
-  });
-  [hero, stage].forEach((element) => observer.observe(element));
-
-  const tabs = [...stage.querySelectorAll(".win-tab")];
-  const cards = [...stage.querySelectorAll(".fcard")];
-  let active = 0;
-  let timer = null;
-  const setActive = (index) => {
-    active = index;
-    tabs.forEach((tab, n) => tab.setAttribute("aria-pressed", n === index));
-    cards.forEach((card, n) => card.classList.toggle("is-active", n === index));
-  };
-  const start = () => {
-    if (motion && !timer) timer = setInterval(() => setActive((active + 1) % cards.length), 2800);
-  };
-  const stop = () => {
-    clearInterval(timer);
-    timer = null;
-  };
-  start();
-  stage.addEventListener("pointerenter", stop);
-  stage.addEventListener("pointerleave", start);
-  tabs.forEach((tab, n) => tab.addEventListener("click", () => setActive(n)));
-  stage.querySelectorAll(".fcard-wrap").forEach((wrap, n) => wrap.addEventListener("pointerenter", () => setActive(n)));
+  new IntersectionObserver((entries) => hero.classList.toggle("paused", !entries[0].isIntersecting)).observe(hero);
   hero.querySelectorAll(".float-wrap").forEach((wrap) => {
     wrap.addEventListener("click", () => {
       if (!motion) return;
@@ -223,8 +179,61 @@ function animateLanding(hero, stage) {
   });
 }
 
+// Shared posts rise out of the campfire like smoke, alternating sides on wide screens.
+// They keep drifting under the pointer, and only stop while off screen or in a hidden tab.
+function lightCampfire(stage) {
+  const smoke = stage.querySelector("[data-campfire]");
+  const posts = [...smoke.querySelectorAll(".ember-msg")];
+  if (!posts.length || matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+  posts.forEach((post) => post.remove());
+  stage.classList.add("lit", "paused");
+  let next = 0;
+  let lane = 0;
+  let timer = null;
+  let onScreen = false;
+  const isWide = () => stage.clientWidth > 720;
+  const every = () => (isWide() ? 3.4 : 5.8);
+  const jitter = (range) => Math.round((Math.random() - 0.5) * range);
+  const spawn = (delay = 0) => {
+    const post = posts[next++ % posts.length].cloneNode(true);
+    const side = lane++ % 2 ? 1 : -1;
+    const offset = isWide() ? side * Math.min(250, stage.clientWidth * 0.23) : 0;
+    const values = {
+      delay: `${delay}s`, x0: `${Math.round(offset * 0.3)}px`, x1: `${Math.round(offset * 0.95) + jitter(16)}px`,
+      xm: `${Math.round(offset) + jitter(30)}px`, x2: `${Math.round(offset * 1.1) + jitter(50)}px`,
+      r0: `${-side * 2}deg`, r1: `${side * 3 + jitter(3)}deg`, rm: `${-side * 2 + jitter(4)}deg`, r2: `${side * 6 + jitter(4)}deg`,
+    };
+    // Set from here because the security policy blocks style="" attributes.
+    for (const [name, value] of Object.entries(values)) post.style.setProperty(`--${name}`, value);
+    post.addEventListener("animationend", () => post.remove());
+    smoke.append(post);
+    post.style.setProperty("--rise", `${Math.max(120, smoke.clientHeight - post.offsetHeight)}px`);
+  };
+  const tick = () => {
+    spawn();
+    timer = setTimeout(tick, every() * 1000);
+  };
+  const sync = () => {
+    const running = onScreen && document.visibilityState === "visible";
+    stage.classList.toggle("paused", !running);
+    if (running && !timer) timer = setTimeout(tick, every() * 1000);
+    if (!running && timer) {
+      clearTimeout(timer);
+      timer = null;
+    }
+  };
+  [0, 1, 2].forEach((k) => spawn(-k * every()));
+  document.addEventListener("visibilitychange", sync);
+  new IntersectionObserver((entries) => {
+    onScreen = entries[0].isIntersecting;
+    sync();
+  }).observe(stage);
+}
+
 const floatField = document.querySelector(".float-field");
 if (floatField) {
   drawFloaters(floatField);
-  animateLanding(document.querySelector(".land-hero"), document.querySelector(".stage"));
+  animateHero(document.querySelector(".land-hero"));
 }
+const campfire = document.querySelector(".fire-stage");
+if (campfire) lightCampfire(campfire);

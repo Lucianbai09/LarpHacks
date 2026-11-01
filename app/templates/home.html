@@ -4,7 +4,7 @@
 {% block content %}
   <div class="page-head">
     <div>
-      <h1>Hi, {{ current_user.username }}</h1>
+      <h1>Hey, {{ current_user.username }}</h1>
       <p class="muted">{{ today.strftime("%A, %B") }} {{ today.day }}</p>
     </div>
   </div>
@@ -12,8 +12,9 @@
   <section class="card" aria-labelledby="week-title">
     <div class="card-head">
       <h2 class="h2" id="week-title">Last 7 days</h2>
-      {% if week_summary %}<p class="muted small">{{ week_summary.on_track }} of {{ week_summary.count }} days in character</p>{% endif %}
+      {% if streak %}<span class="pill streak">{{ icon("flame") }}{{ streak }}-day streak</span>{% endif %}
     </div>
+    {% if week_summary %}<p class="muted small mt-4">{{ week_summary.on_track }} of {{ week_summary.count }} days in character</p>{% endif %}
     {{ week_dots(week, today) }}
     <div class="divider"></div>
     {% if check_in %}
@@ -27,7 +28,7 @@
       <a class="btn btn-ghost btn-block mt-16" href="{{ url_for('main.progress') }}">{{ icon("chart") }}See your progress</a>
     {% else %}
       <a class="btn btn-primary btn-block" href="{{ url_for('main.check_in') }}">{{ icon("check") }}Check in for today</a>
-      <p class="muted small center mt-8">Three quick questions, no typing</p>
+      <p class="muted small center mt-8">{{ "Keep your " ~ streak ~ "-day streak going. " if streak }}Three taps, no typing</p>
     {% endif %}
   </section>
 

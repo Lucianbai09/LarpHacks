@@ -23,6 +23,17 @@ copy .env.example .env
 .venv\Scripts\flask.exe seed-demo
 ```
 
+**On a Mac,** install Python 3.14 from [python.org](https://www.python.org/downloads/) and [Postgres.app](https://postgresapp.com) (open it and click Initialize). Postgres.app logs you in as your Mac user with no password, so `.env` uses `postgresql+psycopg://YOUR_MAC_USERNAME@localhost:5432/larphacks` (and `larphacks_test`). Then in Terminal, from the repo root:
+
+```bash
+python3.14 -m venv .venv
+.venv/bin/pip install -r requirements-dev.txt
+/Applications/Postgres.app/Contents/Versions/latest/bin/createdb larphacks
+/Applications/Postgres.app/Contents/Versions/latest/bin/createdb larphacks_test
+.venv/bin/flask init-db
+.venv/bin/flask seed-demo
+```
+
 That setup only happens once. Other `flask` commands below run the same way, through `.venv\Scripts\flask.exe`.
 
 **To start the site from then on, press F5 in VS Code.** It runs `run.py` from whichever file you have open and opens http://127.0.0.1:5000 in your browser. Saved changes reload by themselves, and the red square in VS Code's toolbar stops the site.

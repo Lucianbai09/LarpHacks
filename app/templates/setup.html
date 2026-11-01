@@ -22,11 +22,11 @@
         {% if error %}<p class="form-msg" role="alert">{{ icon("alert") }}<span>{{ error }}</span></p>{% endif %}
 
         {% if step == 1 %}
-          <h1>What do you want to quit?</h1>
-          <p class="muted lead">Choose all that apply. You can change this later.</p>
+          <h1>What are you done with?</h1>
+          <p class="muted lead">Pick as many as you want. You can change this later.</p>
           <fieldset>
             <legend class="sr-only">Habits</legend>
-            <div class="options">
+            <div class="options two-up">
               {% for category in categories %}
                 <label class="option">
                   <input class="sr-only" type="checkbox" name="habit" value="{{ category.slug }}" {% if category.slug in (ticked if ticked is not none else joined) %}checked{% endif %}>
@@ -39,7 +39,7 @@
           </fieldset>
           {% if joined %}<p class="muted small">Unticking one leaves that community and loses its count.</p>{% endif %}
         {% elif step == 2 %}
-          <h1>Make your pledge</h1>
+          <h1>Write your pledge</h1>
           <p class="muted lead">Say it as if it's already true. From today, you play the part.</p>
           <div>
             <label class="field-label" for="pledge-text">Your pledge</label>
@@ -59,7 +59,7 @@
         {% endif %}
       </div>
 
-      <div class="onb-foot"><button class="btn btn-primary btn-block">{{ "Finish setup" if step == total else "Continue" }}</button></div>
+      <div class="onb-foot"><button class="btn btn-primary btn-block">{{ "I'm in" if step == total else "Continue" }}</button></div>
     </form>
   </main>
 {% endblock %}

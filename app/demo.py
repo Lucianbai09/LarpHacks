@@ -30,10 +30,10 @@ DEMO_EMAIL_DOMAIN = "example.com"
 USERS = {
     "maya": {"alcohol": 12},
     "theo": {"gaming": 50, "scrolling": 4},
-    "sam": {"scrolling": 2},
-    "jonas": {"alcohol": 92},
-    "priya": {"scrolling": 16},
-    "lena": {"gaming": 8},
+    "sam": {"scrolling": 2, "vaping": 9, "energy-drinks": 4},
+    "jonas": {"alcohol": 92, "weed": 33},
+    "priya": {"scrolling": 16, "shopping": 21},
+    "lena": {"gaming": 8, "gambling": 6},
 }
 
 # Requester, addressee, accepted. Two circles, and two requests still waiting.
@@ -58,6 +58,56 @@ CHECK_INS = {
 }
 
 POSTS = [
+    {
+        "author": "sam",
+        "communities": ["vaping"],
+        "report_type": "weekly",
+        "visibility": "public",
+        "days_ago": 2,
+        "body": "A week off the vape. Gave it to my roommate to hide and told him not to tell me where, even if I beg. I begged once. He held the line.",
+        "comments": [("lena", "Your roommate is the real MVP.")],
+        "believers": ["lena", "theo"],
+    },
+    {
+        "author": "lena",
+        "communities": ["gambling"],
+        "report_type": "daily",
+        "visibility": "public",
+        "days_ago": 3,
+        "body": "Deleted the betting app during the game tonight instead of after it. Watched the whole thing for fun, like a normal person. Weird feeling. Good feeling.",
+        "comments": [],
+        "believers": ["sam", "jonas"],
+    },
+    {
+        "author": "priya",
+        "communities": ["shopping"],
+        "report_type": "weekly",
+        "visibility": "public",
+        "days_ago": 5,
+        "body": "Two weeks of the 48-hour rule. If I still want it two days later I can buy it. So far the cart has emptied itself every time.",
+        "comments": [("sam", "Trying this one tonight.")],
+        "believers": ["maya", "lena"],
+    },
+    {
+        "author": "jonas",
+        "communities": ["weed"],
+        "report_type": "reflection",
+        "visibility": "public",
+        "days_ago": 7,
+        "body": "Almost a month in and I'm remembering my dreams again. Also turns out I'm a morning person? Nobody is more surprised than me.",
+        "comments": [],
+        "believers": ["priya", "theo"],
+    },
+    {
+        "author": "sam",
+        "communities": ["energy-drinks"],
+        "report_type": "daily",
+        "visibility": "public",
+        "days_ago": 1,
+        "body": "Swapped the 3pm energy drink for a walk around the block. Headache on day two, but slept before midnight for the first time in months.",
+        "comments": [],
+        "believers": ["priya"],
+    },
     {
         "author": "theo",
         "communities": ["gaming", "scrolling"],

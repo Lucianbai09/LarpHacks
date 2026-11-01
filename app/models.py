@@ -11,9 +11,14 @@ from . import db, login_manager
 # Adding a habit: add a line here, then run `flask init-db`.
 # Slug, name, an icon from _icons.html, and the end of "I'm someone who doesn't ...".
 CATEGORIES = [
-    ("alcohol", "Alcohol", "glass", "need a drink"),
     ("scrolling", "Scrolling", "phone", "doomscroll"),
+    ("vaping", "Vaping", "vape", "vape"),
     ("gaming", "Gaming", "gamepad", "game on autopilot"),
+    ("alcohol", "Alcohol", "glass", "need a drink"),
+    ("weed", "Weed", "leaf", "smoke weed"),
+    ("gambling", "Betting", "dice", "bet"),
+    ("energy-drinks", "Energy drinks", "bolt", "run on energy drinks"),
+    ("shopping", "Impulse buying", "bag", "impulse buy"),
 ]
 CATEGORY_LOOKS = {slug: (icon, verb) for slug, _, icon, verb in CATEGORIES}
 

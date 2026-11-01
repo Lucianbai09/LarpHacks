@@ -1,14 +1,15 @@
 {% extends "base.html" %}
 {% from "_forms.html" import post_button %}
-{% from "_ui.html" import audience_icon, icon %}
+{% from "_ui.html" import audience_icon, embers, icon %}
 
 {% block title %}Checked in · Cove{% endblock %}
 
 {% block content %}
   <section class="card done-hero">
-    <div class="done-icon">{{ icon("tick") }}</div>
-    <h1>{{ "Another day in character. Nice work." if entry.on_track else "Thanks for being honest." }}</h1>
-    <p class="muted lead mt-8">{{ "See you tomorrow." if entry.on_track else "A slip doesn't erase your progress. Check in again tomorrow." }}</p>
+    <div class="done-icon">{{ embers() }}{{ icon("tick") }}</div>
+    <h1>{{ "Another day in character. Nice work." if entry.on_track else "Honest beats perfect." }}</h1>
+    <p class="muted lead mt-8">{{ "See you tomorrow." if entry.on_track else "A slip doesn't wipe your progress. Run it back tomorrow." }}</p>
+    {% if streak > 1 %}<p class="pill streak mt-16">{{ icon("flame") }}{{ streak }}-day check-in streak</p>{% endif %}
   </section>
 
   <section class="card">

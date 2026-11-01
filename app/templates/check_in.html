@@ -5,7 +5,7 @@
 
 {% block content %}
   <div class="page-head"><h1>{{ "Edit today's check-in" if entry else "Daily check-in" }}</h1></div>
-  <p class="muted lead">Three quick questions, no typing.</p>
+  <p class="muted lead">Three taps. Ten seconds. No typing.</p>
   {% if error %}<p class="form-msg" role="alert">{{ icon("alert") }}<span>{{ error }}</span></p>{% endif %}
 
   <form method="post" class="stack">
@@ -21,7 +21,7 @@
           </label>
         {% endfor %}
       </div>
-      <p class="scale-ends muted small mt-8"><span>1 is awful</span><span>10 is great</span></p>
+      <p class="scale-ends muted small mt-8"><span>1 = rough day</span><span>10 = on top of the world</span></p>
     </fieldset>
 
     <fieldset class="card q">
@@ -37,7 +37,7 @@
             </label>
           {% endfor %}
         </div>
-        <p class="muted small mt-12">Tick each one you pulled off. If you slipped, leave it blank. Honest days count too.</p>
+        <p class="muted small mt-12">Tick each one you pulled off. Slipped? Leave it blank. Honest days still count.</p>
       {% else %}
         <p class="muted">You're not working on anything yet. <a href="{{ url_for('main.category_list') }}">Find your community</a>.</p>
       {% endif %}
@@ -54,7 +54,7 @@
     </fieldset>
 
     <div class="btn-row">
-      <button class="btn btn-primary">{{ icon("tick") }}Save check-in</button>
+      <button class="btn btn-primary">{{ icon("tick") }}Lock it in</button>
       {% if entry %}<a class="btn btn-ghost" href="{{ url_for('main.check_in') }}">Cancel</a>{% endif %}
     </div>
   </form>

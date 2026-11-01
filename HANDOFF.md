@@ -36,7 +36,9 @@ The old weak spots, the plain look and the missing check-in, are fixed. What's l
 
 The product is called Cove, while the repo, databases and Render service keep the name LarpHacks.
 
-- Communities are Alcohol, Scrolling and Gaming, and more must stay easy to add.
+- Aimed at Gen Z and younger millennials. Eight communities: Scrolling, Vaping, Gaming, Alcohol, Weed, Betting, Energy drinks and Impulse buying (`CATEGORIES` in `app/models.py`). More must stay easy to add.
+- **Tone:** casual and short. The larp theme shows up in a few chosen places only ("Let's larp" on sign-up, "days in character", "I broke character", the pledge). Don't sprinkle it everywhere.
+- **Logo:** `app/static/cove-logo.png` (wordmark, in the desktop nav, a slim bar on phones and the landing nav) and `cove-mark.png` (the campfire badge, also the favicon).
 - Posts go into any number of communities, or into Overall on its own.
 - Real people can sign up and use it alongside walled-off demo data.
 
@@ -133,7 +135,9 @@ The product is called Cove, while the repo, databases and Render service keep th
 
 **Badges:** First step, Honest day, Comeback, Perfect week, Many fronts, Open book, Cheerleader, Partnered up, Storyteller, Circle of three. Earning one shows a "New badge" message.
 
-**Also:** a landing page for logged-out visitors, `/terms`, `/privacy`, and a "not medical care" footer.
+**Check-in streak:** days in a row with a check-in, slips included, shown on Home and after checking in.
+
+**Also:** a landing page for logged-out visitors, where shared posts drift up out of a campfire (they keep moving under the mouse, and pause off screen), `/terms`, `/privacy`, and a "not medical care" footer.
 
 ## 8. Decisions already made
 

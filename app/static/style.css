@@ -39,7 +39,6 @@
   --line-strong: #EECBAA;
   --control: #B07A5C;
   --track: #FBE3CB;
-  --window: #FFE6CE;
 
   --radius-lg: 20px;
   --radius: 16px;
@@ -105,8 +104,11 @@ small { display: inline-block; margin-left: 6px; padding: 0 8px; border-radius: 
   view-transition-name: topnav;
 }
 .brand { display: inline-flex; align-items: center; gap: 10px; font-weight: 900; font-size: 1.375rem; letter-spacing: -.02em; }
-.brand-mark { width: 36px; height: 36px; flex: none; border-radius: 10px; background: var(--orange); color: var(--brown); display: grid; place-items: center; }
-.brand-mark .mark { width: 26px; height: 26px; fill: currentColor; }
+.logo { display: block; width: auto; height: 34px; }
+.brand-mark { display: block; width: 36px; height: 36px; flex: none; }
+/* Phones and tablets get the logo in a slim bar, since the top navigation is desktop only */
+.mobile-bar { display: flex; justify-content: center; padding: 14px 16px 0; }
+.mobile-bar .logo { height: 28px; }
 .topnav-links { display: flex; gap: 8px; flex: 1; }
 .topnav-link { position: relative; display: inline-flex; align-items: center; gap: 8px; padding: 0 14px; font-weight: 700; color: var(--text-muted); transition: color var(--t-hover) ease; }
 .topnav-link::after { content: ""; position: absolute; left: 14px; right: 14px; bottom: 0; height: 3px; border-radius: 3px 3px 0 0; background: var(--text); transform: scaleX(0); }
@@ -149,6 +151,7 @@ small { display: inline-block; margin-left: 6px; padding: 0 8px; border-radius: 
   .shell { padding-bottom: 0; }
   .tabbar { display: none; }
   .topnav { display: flex; }
+  .mobile-bar { display: none; }
   .main { max-width: 720px; padding: 40px 32px 64px; }
   .main.wide { max-width: 1160px; }
   h1 { font-size: 2rem; }
@@ -196,6 +199,8 @@ small { display: inline-block; margin-left: 6px; padding: 0 8px; border-radius: 
 .stat-value { font-size: 1.5rem; font-weight: 800; line-height: 1.25; letter-spacing: -.01em; margin-top: 2px; font-variant-numeric: tabular-nums; }
 .pill { display: inline-flex; align-items: center; gap: 6px; min-height: 30px; padding: 0 12px; border-radius: 999px; background: var(--bg); font-size: .875rem; font-weight: 700; white-space: nowrap; }
 .pill .i { width: 16px; height: 16px; stroke-width: 2.5; }
+.pill.streak { background: var(--peach); }
+.pill.streak .i { color: var(--rust); fill: var(--apricot); stroke-width: 2; }
 
 /* ---------- People ---------- */
 .person-row { display: flex; align-items: center; gap: 14px; }
@@ -244,6 +249,7 @@ small { display: inline-block; margin-left: 6px; padding: 0 8px; border-radius: 
 .segmented input:focus-visible + span { outline: 3px solid var(--text); outline-offset: 2px; }
 
 .options { display: flex; flex-direction: column; gap: 10px; }
+@media (min-width: 480px) { .options.two-up { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); } }
 .option {
   display: flex; align-items: center; gap: 14px; min-height: 60px; padding: 12px 16px;
   border: 1.5px solid var(--line-strong); border-radius: var(--radius); background: var(--surface);
@@ -442,11 +448,10 @@ input:focus-visible + .check-ind { outline: 3px solid var(--text); outline-offse
   display: flex; align-items: center; gap: 2px; width: max-content; max-width: 100%; margin: 0 auto;
   padding: 6px; border: 1px solid var(--line); border-radius: 999px; background: var(--surface);
 }
-.land-nav .brand { padding: 0 12px 0 4px; font-size: 1.125rem; }
-.land-nav .brand-mark { width: 32px; height: 32px; border-radius: 50%; }
-.land-nav .brand-mark .mark { width: 22px; height: 22px; }
+.land-nav .brand { padding: 0 14px 0 12px; }
+.land-nav .logo { height: 26px; }
 .land-link { display: inline-flex; align-items: center; min-height: 44px; padding: 0 16px; border-radius: 999px; font-weight: 700; white-space: nowrap; color: var(--text-muted); transition: color var(--t-hover) ease, background-color var(--t-hover) ease; }
-@media (max-width: 420px) { .land-link { padding: 0 12px; font-size: .9375rem; } .land-nav .brand { padding-right: 6px; } }
+@media (max-width: 420px) { .land-link { padding: 0 12px; font-size: .9375rem; } .land-nav .brand { padding: 0 8px; } .land-nav .logo { height: 22px; } }
 .land-link.solid { background: var(--text); color: var(--surface); }
 .land-flash { max-width: 640px; margin: 16px auto 0; }
 
@@ -474,50 +479,52 @@ input:focus-visible + .check-ind { outline: 3px solid var(--text); outline-offse
   .float-wrap.wide-only { display: none; }
 }
 
-/* The app window with feature cards that drift in front of it */
 .land-section { max-width: 1200px; margin: 0 auto; scroll-margin-top: 24px; }
 .land-h2 { font-family: var(--display); font-weight: 700; font-size: clamp(2rem, 4vw, 3rem); line-height: 1.05; letter-spacing: -.03em; text-align: center; }
-.land-h2 + p { text-align: center; margin-top: 12px; font-size: 1.125rem; }
-.stage { position: relative; margin-top: 40px; }
-.window { display: none; }
-.cards { display: grid; grid-template-columns: minmax(0, 1fr); gap: 16px; }
-.fcard-wrap:nth-child(1) { --k: 0; --mt: 72px; --depth: 1.1; --bd: 5.6s; --bdelay: -1s; }
-.fcard-wrap:nth-child(2) { --k: 1; --mt: 0px; --depth: .5; --bd: 6.4s; --bdelay: -3s; }
-.fcard-wrap:nth-child(3) { --k: 2; --mt: 120px; --depth: .9; --bd: 5.9s; --bdelay: -2s; }
-.fcard-wrap:nth-child(4) { --k: 3; --mt: 40px; --depth: .4; --bd: 6.8s; --bdelay: -4s; }
-.fcard {
-  padding: 22px; border: 2px solid var(--text); border-radius: 18px; background: var(--surface);
-  transition: box-shadow 320ms var(--ease-out);
-}
-.fcard.featured { background: var(--peach); }
-.fcard.is-active { box-shadow: 6px 6px 0 var(--text); }
-.fcard-tags { display: flex; flex-wrap: wrap; gap: 8px; }
-.tag { display: inline-flex; align-items: center; gap: 8px; min-height: 36px; padding: 0 12px; border-radius: 10px; background: var(--bg); font-size: .9375rem; font-weight: 700; white-space: nowrap; }
-.fcard.featured .tag { background: var(--surface); }
-.tag .i { width: 18px; height: 18px; }
-.fcard-title { font-family: var(--display); font-weight: 700; font-size: 1.75rem; line-height: 1.1; letter-spacing: -.03em; margin-top: 28px; }
-.fcard-text { margin-top: 8px; line-height: 1.5; }
-@media (min-width: 640px) {
-  .cards { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 20px; align-items: start; }
-  .fcard-wrap:nth-child(even) { margin-top: 48px; }
-}
-@media (min-width: 1100px) {
-  .stage { height: 560px; }
-  .window {
-    display: block; position: absolute; left: 5%; right: 5%; top: 0; height: 380px; overflow: hidden;
-    border: 1px solid var(--line-strong); border-radius: 18px; background: var(--window);
-  }
-  .window-bar { display: flex; align-items: center; gap: 6px; height: 52px; padding: 0 16px; background: var(--surface); border-bottom: 1px solid var(--line); }
-  .win-dots { display: flex; gap: 6px; margin-right: 12px; }
-  .win-dots i { width: 11px; height: 11px; border-radius: 50%; background: var(--line-strong); }
-  .win-tab { display: inline-flex; align-items: center; gap: 8px; height: 36px; padding: 0 14px; border: 0; border-radius: 10px; background: none; font-size: .9375rem; font-weight: 700; color: var(--text-muted); transition: background-color var(--t-ui) ease, color var(--t-ui) ease; }
-  .win-tab .i { width: 18px; height: 18px; }
-  .win-tab[aria-pressed="true"] { background: var(--bg); color: var(--text); }
-  .cards { position: absolute; left: 1%; right: 1%; top: 104px; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 18px; }
-  .fcard-wrap:nth-child(even) { margin-top: 0; }
-  .fcard-wrap { margin-top: var(--mt); }
-}
-.land-feed { max-width: 640px; margin: 72px auto 0; scroll-margin-top: 24px; }
+.how-blurb { max-width: 36rem; margin: 20px auto 0; font-size: 1.1875rem; line-height: 1.6; text-align: center; }
+
+/* Around the campfire: shared posts drift up out of the fire like smoke, drawn by app.js */
+.campfire { margin: 112px auto 0; max-width: 1200px; text-align: center; scroll-margin-top: 24px; }
+.campfire-sub { max-width: 30rem; margin: 14px auto 0; font-size: 1.125rem; color: var(--text-muted); }
+.fire-stage { position: relative; max-width: 1100px; margin: 32px auto 0; }
+.smoke { display: flex; flex-direction: column; align-items: center; gap: 20px; }
+.fire-stage:not(.lit) .ember-msg:nth-child(n + 4) { display: none; }
+.fire-stage:not(.lit) .ember-msg:nth-child(1) { transform: rotate(-2deg); }
+.fire-stage:not(.lit) .ember-msg:nth-child(2) { transform: rotate(2.5deg); }
+.fire-stage:not(.lit) .ember-msg:nth-child(3) { transform: rotate(-1.5deg); }
+.ember-msg { width: min(380px, 90%); padding: 14px 16px 16px; border: 1.5px solid var(--line-strong); border-radius: 16px; background: var(--surface); text-align: left; }
+.ember-head { display: flex; align-items: center; gap: 10px; font-size: .875rem; line-height: 1.3; }
+.ember-head .avatar { width: 32px; height: 32px; font-size: .9375rem; }
+.ember-name { font-weight: 800; }
+.ember-meta { color: var(--text-muted); }
+.ember-body { margin-top: 8px; line-height: 1.45; display: -webkit-box; -webkit-line-clamp: 6; -webkit-box-orient: vertical; overflow: hidden; overflow-wrap: anywhere; }
+.fire-logo { position: relative; width: 220px; margin: 16px auto 0; }
+.campfire-mark { display: block; width: 100%; height: auto; overflow: visible; }
+.fire-glow { fill: var(--apricot); opacity: .35; }
+.flame { transform-box: fill-box; transform-origin: 50% 100%; }
+.flame-outer { fill: var(--orange); }
+.flame-mid { fill: var(--apricot); }
+.flame-core { fill: var(--peach); }
+.log { fill: var(--brown); stroke: #5A2614; stroke-width: 2; }
+.fire-stage.lit { height: 720px; }
+.fire-stage.lit .smoke { position: absolute; inset: 0 0 230px 0; display: block; }
+.fire-stage.lit .ember-msg { position: absolute; left: 50%; bottom: 0; transform: translateX(-50%); }
+.fire-stage.lit .fire-logo { position: absolute; left: 50%; bottom: 0; margin: 0; transform: translateX(-50%); }
+@media (max-width: 700px) { .fire-logo { width: 180px; } .fire-stage.lit { height: 660px; } .fire-stage.lit .smoke { bottom: 190px; } }
+
+/* Sparks that float up out of the fire, and off the tick when you check in */
+.embers { position: absolute; inset: 0; pointer-events: none; }
+.ember { position: absolute; left: 50%; top: 20%; width: 4px; height: 4px; border-radius: 50%; background: var(--orange); opacity: 0; }
+.ember:nth-child(1) { margin-left: -18px; --ex: -26px; --ey: -150px; --d: 3.1s; --dl: -.3s; }
+.ember:nth-child(2) { margin-left: 10px; --ex: 22px; --ey: -190px; --d: 3.8s; --dl: -1.4s; }
+.ember:nth-child(3) { margin-left: -4px; --ex: -10px; --ey: -230px; --d: 4.4s; --dl: -2.2s; }
+.ember:nth-child(4) { margin-left: 16px; --ex: 34px; --ey: -170px; --d: 3.4s; --dl: -.9s; }
+.ember:nth-child(5) { margin-left: -12px; --ex: -40px; --ey: -210px; --d: 4.1s; --dl: -3s; }
+.ember:nth-child(6) { margin-left: 4px; --ex: 8px; --ey: -250px; --d: 4.8s; --dl: -1.9s; }
+.ember:nth-child(7) { margin-left: -24px; --ex: -18px; --ey: -140px; --d: 2.9s; --dl: -2.6s; }
+.ember:nth-child(8) { margin-left: 22px; --ex: 28px; --ey: -230px; --d: 4.6s; --dl: -.6s; }
+.done-icon { position: relative; }
+.done-icon .ember { --ey: -90px; }
 .land-close { margin: 72px auto 0; display: flex; flex-direction: column; align-items: center; gap: 24px; text-align: center; }
 .land-foot { display: flex; align-items: center; justify-content: center; gap: 10px; margin-top: 72px; font-weight: 700; color: var(--text-muted); }
 
@@ -598,12 +605,19 @@ input:focus-visible + .check-ind { outline: 3px solid var(--text); outline-offse
   .float-in.boop { animation: boop 560ms var(--ease-out); }
   .pix { transition: transform 300ms var(--ease-out); }
   .float-wrap:hover .pix { transform: rotate(-10deg) scale(1.12); }
-  .fcard-wrap { animation: card-in 900ms var(--ease-expo) calc(450ms + var(--k) * 90ms) backwards; }
-  .fcard { animation: bob var(--bd) ease-in-out var(--bdelay) infinite alternate; }
-  .paused .float-ic, .paused .fcard { animation-play-state: paused; }
-  @media (min-width: 1100px) {
-    .fcard-wrap { transform: translateY(calc(var(--s, 0) * var(--depth) * -90px)); }
-  }
+  .paused .float-ic { animation-play-state: paused; }
+
+  /* The campfire flickers and its posts drift up. Pointing at them doesn't stop them */
+  .flame-outer { animation: flicker 1.7s ease-in-out infinite alternate; }
+  .flame-mid { animation: flicker 1.25s ease-in-out -.4s infinite alternate; }
+  .flame-core { animation: flicker .9s ease-in-out -.2s infinite alternate; }
+  .fire-glow { animation: glow 2.2s ease-in-out infinite alternate; }
+  .ember { animation: ember var(--d) linear var(--dl) infinite; }
+  .fire-stage.lit .ember-msg { animation: smoke 12s cubic-bezier(.33, .1, .5, 1) var(--delay, 0s) both; }
+  .fire-stage.paused .ember-msg, .fire-stage.paused .flame, .fire-stage.paused .fire-glow, .fire-stage.paused .ember { animation-play-state: paused; }
+
+  /* A picked answer pops, so every tap feels like it landed */
+  .tile input:checked + .tile-label, .chip input:checked ~ .i, .option input:checked ~ .i { animation: pop 300ms var(--ease-out); }
 }
 
 ::view-transition-old(tabbar), ::view-transition-old(topnav) { display: none; }
@@ -618,5 +632,13 @@ input:focus-visible + .check-ind { outline: 3px solid var(--text); outline-offse
 @keyframes drift { from { transform: translate(0, 0) rotate(-4deg); } to { transform: translate(var(--dx), var(--dy)) rotate(5deg); } }
 @keyframes icon-in { from { opacity: 0; transform: scale(.4) rotate(-14deg); } }
 @keyframes boop { 40% { transform: translateY(-14px) rotate(12deg) scale(1.1); } }
-@keyframes card-in { from { opacity: 0; transform: translateY(64px); } }
-@keyframes bob { to { transform: translateY(-10px); } }
+@keyframes smoke {
+  0% { opacity: 0; transform: translate(calc(-50% + var(--x0)), 30px) rotate(var(--r0)) scale(.9); filter: blur(6px); }
+  12% { opacity: 1; transform: translate(calc(-50% + var(--x1)), calc(var(--rise) * -.12)) rotate(var(--r1)) scale(1); filter: blur(0); }
+  50% { transform: translate(calc(-50% + var(--xm)), calc(var(--rise) * -.5)) rotate(var(--rm)) scale(1.01); }
+  74% { opacity: 1; filter: blur(0); }
+  100% { opacity: 0; transform: translate(calc(-50% + var(--x2)), calc(var(--rise) * -1)) rotate(var(--r2)) scale(1.05); filter: blur(8px); }
+}
+@keyframes ember { 0% { opacity: 0; transform: translate(0, 0); } 12% { opacity: 1; } 100% { opacity: 0; transform: translate(var(--ex), var(--ey)); } }
+@keyframes flicker { from { transform: scale(1, 1); } to { transform: scale(.94, 1.07) skewX(-2deg); } }
+@keyframes glow { from { opacity: .25; } to { opacity: .45; } }

@@ -6,8 +6,8 @@
 
 {% block content %}
   <section class="card auth-card">
-    <h1>Create your account</h1>
-    <p class="muted mt-8">Your username is public, so it doesn't have to be your real name. Your email stays private.</p>
+    <h1>Make your account</h1>
+    <p class="muted mt-8">Your username is public, so go anonymous if you want. Your email stays private.</p>
     {% if error %}<p class="form-msg mt-16" role="alert">{{ icon("alert") }}<span>{{ error }}</span></p>{% endif %}
     <form method="post" class="stack mt-20">
       <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
@@ -31,7 +31,7 @@
         </span>
       </label>
       {{ captcha() }}
-      <button class="btn btn-primary btn-block">Start larping</button>
+      <button class="btn btn-primary btn-block">Let's larp</button>
     </form>
     <p class="muted small center mt-16">Already in character? <a class="text-link" href="{{ url_for('auth.login') }}">Log in</a></p>
   </section>

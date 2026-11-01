@@ -2,7 +2,7 @@ import pytest
 
 from app import db
 from app.demo import CIRCLE_LINKS, DEMO_EMAIL_DOMAIN, PASSWORD, POSTS, USERS, clear, seed
-from app.models import REPORT_TYPES, VISIBILITIES, CircleLink, Comment, Post, User
+from app.models import CATEGORIES, REPORT_TYPES, VISIBILITIES, CircleLink, Comment, Post, User
 
 
 def run(app, action):
@@ -189,7 +189,7 @@ def test_logged_out_visitors_only_see_public_demo_posts(seeded, visitor):
 
 
 def test_every_community_has_demo_posts(seeded, visitor):
-    for slug in ["alcohol", "gaming", "scrolling"]:
+    for slug, *_ in CATEGORIES:
         assert "<article" in visitor().text(f"/categories/{slug}"), slug
 
 

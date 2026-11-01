@@ -1,11 +1,12 @@
 {% from "_forms.html" import post_button %}
-{% from "_ui.html" import brand_mark, icon %}
+{% from "_ui.html" import icon, logo %}
 <!doctype html>
 <html lang="en">
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <title>{% block title %}Cove{% endblock %}</title>
+  <link rel="icon" type="image/png" href="{{ url_for('static', filename='favicon.png') }}">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Figtree:wght@400;500;600;700;800;900&family=Fraunces:opsz,wght@9..144,600;9..144,700&display=swap">
@@ -34,7 +35,7 @@
 
     <div class="shell">
       <header class="topnav">
-        <a class="brand" href="{{ url_for('main.home') }}">{{ brand_mark() }}Cove</a>
+        <a class="brand" href="{{ url_for('main.home') }}">{{ logo() }}</a>
         <nav class="topnav-links" aria-label="Main">
           {% for label, url, icon_name, active in top_links %}
             <a class="topnav-link" href="{{ url }}"{% if active %} aria-current="page"{% endif %}>{{ icon(icon_name) }}{{ label }}</a>
@@ -55,6 +56,8 @@
           {% endif %}
         </div>
       </header>
+
+      <header class="mobile-bar"><a class="brand" href="{{ url_for('main.home') }}">{{ logo() }}</a></header>
 
       <main class="main {% block main_class %}{% endblock %}" id="main">
         {% include "_flashes.html" %}

@@ -97,6 +97,21 @@ def last_seven_days():
     return [{"day": day, "entry": entries.get(day)} for day in days]
 
 
+def check_in_streak():
+    """Days in a row you've checked in, honest slips included, counting from today or yesterday."""
+    days = db.session.scalars(
+        db.select(CheckIn.day).where(CheckIn.user_id == current_user.id).order_by(CheckIn.day.desc()).limit(400)
+    ).all()
+    expected = date.today() if days and days[0] == date.today() else date.today() - timedelta(days=1)
+    streak = 0
+    for day in days:
+        if day != expected:
+            break
+        streak += 1
+        expected -= timedelta(days=1)
+    return streak
+
+
 def logged_entries(week):
     return [item["entry"] for item in week if item["entry"]]
 
@@ -139,10 +154,12 @@ def home():
             week=week,
             week_summary=summarize(logged_entries(week)),
             check_in=todays_check_in(),
+            streak=check_in_streak(),
             badges=badge_summary(current_user),
             posts=feed(),
         )
-    return render_template("landing.html", posts=feed())
+    # Check-in one-liners and photo-only posts make dull stories around the campfire.
+    return render_template("landing.html", posts=feed(Post.report_type != "checkin", Post.body != ""))
 
 
 @bp.route("/terms")
@@ -277,7 +294,9 @@ def check_in():
 
     if entry and not error and "edit" not in request.args:
         missed = [membership for membership in current_user.memberships if membership.category not in entry.larped]
-        return render_template("check_in_done.html", entry=entry, visibilities=VISIBILITIES, missed=missed)
+        return render_template(
+            "check_in_done.html", entry=entry, visibilities=VISIBILITIES, missed=missed, streak=check_in_streak()
+        )
 
     if request.method == "POST":
         ticked = request.form.getlist("larped")

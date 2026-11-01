@@ -4,7 +4,7 @@
 
 {% block content %}
   <h1>Register</h1>
-  <p>No email or real name needed. There's no password reset yet, so keep your password somewhere safe.</p>
+  <p>Your username is public, so it doesn't have to be your real name. Your email stays private.</p>
   {% if error %}<p class="error">{{ error }}</p>{% endif %}
   <form method="post">
     <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
@@ -13,10 +13,17 @@
       <input name="username" value="{{ username }}" autocomplete="username" required autofocus>
     </label>
     <label>
-      Password
-      <input type="password" name="password" minlength="{{ min_password_length }}" autocomplete="new-password" required>
+      Email
+      <input type="email" name="email" value="{{ email }}" autocomplete="email" required>
     </label>
-    <button>Start larping</button>
+    <label>
+      <input type="checkbox" name="terms" {% if request.form.get("terms") %}checked{% endif %} required>
+      I'm at least 13, and I agree to the
+      <a href="{{ url_for('main.terms') }}" target="_blank">Terms</a> and
+      <a href="{{ url_for('main.privacy') }}" target="_blank">Privacy Policy</a>,
+      including LarpHacks storing what I share about my habits.
+    </label>
+    <button>Email me a confirmation link</button>
   </form>
   <p>Already in character? <a href="{{ url_for('auth.login') }}">Log in</a></p>
 {% endblock %}

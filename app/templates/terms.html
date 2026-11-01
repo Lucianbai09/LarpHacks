@@ -1,0 +1,42 @@
+{% extends "base.html" %}
+
+{% block title %}Terms · LarpHacks{% endblock %}
+
+{% block content %}
+  <h1>Terms of Use</h1>
+  <p>Last updated {{ terms_version }}</p>
+  <p>By creating an account, you agree to these terms. LarpHacks is a hackathon project run by the LarpHacks team.</p>
+
+  <h2>Not medical care</h2>
+  <p>LarpHacks is a tracking and peer support tool. It isn't medical advice, diagnosis or treatment, and other members aren't professionals.</p>
+  <p>Stopping some substances suddenly, including alcohol, can be dangerous, so talk to a doctor first. If you're in danger or crisis, call your local emergency number. In the US, you can call or text 988, or call the SAMHSA helpline at 1-800-662-4357.</p>
+
+  <h2>Who can use LarpHacks</h2>
+  <p>You must be at least 13 and old enough in your country to agree to these terms. If you're under 18, you need permission from a parent or guardian.</p>
+  <p>You're responsible for what happens on your account. Keep your email secure, because email links log you in.</p>
+
+  <h2>Your posts</h2>
+  <p>You own what you post. You give LarpHacks permission to store it and show it to the audience you choose, only to run the site.</p>
+  <p>Community posts are public, so anyone can read them without an account. People in your circle could also copy or share what you show them.</p>
+
+  <h2>Community rules</h2>
+  <ul>
+    <li>No harassment, threats or hate.</li>
+    <li>Don't post anyone else's private information, or reveal their situation without permission.</li>
+    <li>Don't sell or promote drugs, alcohol or gambling, or encourage self-harm or relapse.</li>
+    <li>Don't present advice as if it comes from a medical professional unless it does.</li>
+    <li>Don't spam, scrape, or try to break the site or get into other people's accounts.</li>
+  </ul>
+  <p>We may remove content or close accounts that break these rules.</p>
+
+  <h2>Leaving</h2>
+  <p>You can delete your account at any time from your account page, which also deletes your posts, comments and reactions.</p>
+
+  <h2>No guarantees</h2>
+  <p>LarpHacks is provided as is. It may change, go down, lose data or shut down, so keep your own copy of anything important. As far as the law allows, the LarpHacks team isn't liable for harm from using the site or from what other members post.</p>
+
+  <h2>Changes</h2>
+  <p>If these terms change, we'll update this page and its date. Continuing to use LarpHacks means you accept the new version.</p>
+
+  {% if contact_email %}<p>Questions? Email <a href="mailto:{{ contact_email }}">{{ contact_email }}</a>.</p>{% endif %}
+{% endblock %}

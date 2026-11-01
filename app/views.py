@@ -1,6 +1,6 @@
 from datetime import date
 
-from flask import Blueprint, flash, redirect, render_template, request, url_for
+from flask import Blueprint, current_app, flash, redirect, render_template, request, url_for
 from flask_login import current_user, login_required
 from sqlalchemy import func
 
@@ -8,6 +8,7 @@ from . import db
 from .auth import back
 from .models import (
     REPORT_TYPES,
+    TERMS_VERSION,
     VISIBILITIES,
     Category,
     CircleLink,
@@ -66,6 +67,16 @@ def nav_counts():
 @bp.route("/")
 def home():
     return render_template("home.html", categories=all_categories(), posts=feed())
+
+
+@bp.route("/terms")
+def terms():
+    return render_template("terms.html", terms_version=TERMS_VERSION, contact_email=current_app.config["EMAIL_FROM"])
+
+
+@bp.route("/privacy")
+def privacy():
+    return render_template("privacy.html", terms_version=TERMS_VERSION, contact_email=current_app.config["EMAIL_FROM"])
 
 
 @bp.route("/categories")

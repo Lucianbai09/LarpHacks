@@ -3,7 +3,7 @@ from datetime import date, datetime, timedelta, timezone
 from werkzeug.security import generate_password_hash
 
 from . import db
-from .models import Category, CircleLink, Comment, Membership, Post, Reaction, User
+from .models import TERMS_VERSION, Category, CircleLink, Comment, Membership, Post, Reaction, User
 
 PASSWORD = "larping123"
 
@@ -101,7 +101,13 @@ def seed():
 
     categories = {category.slug: category for category in db.session.scalars(db.select(Category))}
     users = {
-        username: User(username=username, password_hash=generate_password_hash(PASSWORD)) for username in USERS
+        username: User(
+            username=username,
+            email=f"{username}@example.com",
+            password_hash=generate_password_hash(PASSWORD),
+            terms_version=TERMS_VERSION,
+        )
+        for username in USERS
     }
     db.session.add_all(users.values())
     db.session.flush()

@@ -26,16 +26,30 @@ VISIBILITIES = {
     "private": "Only me",
 }
 
+# Change this when the Terms or Privacy Policy change.
+TERMS_VERSION = "2026-11-01"
+
 
 class User(UserMixin, db.Model):
     __tablename__ = "users"
 
     id = db.Column(db.Integer, primary_key=True)
     username = db.Column(db.String(30), unique=True, nullable=False)
-    password_hash = db.Column(db.String(255), nullable=False)
+    email = db.Column(db.String(254), unique=True, nullable=False)
+    # NULL until someone chooses to set a password. Email links always work.
+    password_hash = db.Column(db.String(255))
+    # Goes up whenever a login link is used, so each link only works once.
+    login_version = db.Column(db.Integer, nullable=False, default=0)
+    terms_version = db.Column(db.String(20), nullable=False)
+    terms_accepted_at = db.Column(db.DateTime(timezone=True), server_default=func.now(), nullable=False)
     created_at = db.Column(db.DateTime(timezone=True), server_default=func.now(), nullable=False)
 
     memberships = db.relationship("Membership")
+
+    @property
+    def is_demo(self):
+        # Their password is public, so nobody gets to lock them or delete them.
+        return self.email.endswith("@example.com")
 
 
 @login_manager.user_loader
@@ -50,7 +64,7 @@ class Category(db.Model):
 
 
 class Membership(db.Model):
-    user_id = db.Column(db.ForeignKey("users.id"), primary_key=True)
+    user_id = db.Column(db.ForeignKey("users.id", ondelete="CASCADE"), primary_key=True)
     category_id = db.Column(db.ForeignKey("category.id"), primary_key=True)
     # The day the "days in character" count runs from.
     started_on = db.Column(db.Date, nullable=False, default=date.today)
@@ -64,8 +78,8 @@ class Membership(db.Model):
 
 
 class CircleLink(db.Model):
-    requester_id = db.Column(db.ForeignKey("users.id"), primary_key=True)
-    addressee_id = db.Column(db.ForeignKey("users.id"), primary_key=True)
+    requester_id = db.Column(db.ForeignKey("users.id", ondelete="CASCADE"), primary_key=True)
+    addressee_id = db.Column(db.ForeignKey("users.id", ondelete="CASCADE"), primary_key=True)
     accepted = db.Column(db.Boolean, nullable=False, default=False)
 
     requester = db.relationship(User, foreign_keys=[requester_id], lazy="joined")
@@ -77,7 +91,7 @@ class CircleLink(db.Model):
 
 class Post(db.Model):
     id = db.Column(db.Integer, primary_key=True)
-    user_id = db.Column(db.ForeignKey("users.id"), nullable=False)
+    user_id = db.Column(db.ForeignKey("users.id", ondelete="CASCADE"), nullable=False)
     # NULL means the post only shows in the overall feed.
     category_id = db.Column(db.ForeignKey("category.id"))
     report_type = db.Column(db.String(20), nullable=False, default="post")
@@ -104,8 +118,8 @@ class Post(db.Model):
 
 class Comment(db.Model):
     id = db.Column(db.Integer, primary_key=True)
-    post_id = db.Column(db.ForeignKey("post.id"), nullable=False)
-    user_id = db.Column(db.ForeignKey("users.id"), nullable=False)
+    post_id = db.Column(db.ForeignKey("post.id", ondelete="CASCADE"), nullable=False)
+    user_id = db.Column(db.ForeignKey("users.id", ondelete="CASCADE"), nullable=False)
     body = db.Column(db.Text, nullable=False)
     created_at = db.Column(db.DateTime(timezone=True), server_default=func.now(), nullable=False)
 
@@ -116,8 +130,8 @@ class Comment(db.Model):
 class Reaction(db.Model):
     """An "I believe you" on a post."""
 
-    user_id = db.Column(db.ForeignKey("users.id"), primary_key=True)
-    post_id = db.Column(db.ForeignKey("post.id"), primary_key=True)
+    user_id = db.Column(db.ForeignKey("users.id", ondelete="CASCADE"), primary_key=True)
+    post_id = db.Column(db.ForeignKey("post.id", ondelete="CASCADE"), primary_key=True)
 
 
 def circle_links(user):

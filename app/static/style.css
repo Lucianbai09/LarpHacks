@@ -45,6 +45,11 @@ textarea {
 .flash {
   padding: 0.5rem;
   background: #eee;
+  overflow-wrap: anywhere;
+}
+
+footer {
+  margin-top: 3rem;
 }
 
 .error {

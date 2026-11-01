@@ -1,0 +1,35 @@
+{% extends "base.html" %}
+{% from "_forms.html" import post_button %}
+
+{% block title %}Account · LarpHacks{% endblock %}
+
+{% block content %}
+  <h1>Account</h1>
+  <p>Username: <a href="{{ url_for('main.profile', username=current_user.username) }}">{{ current_user.username }}</a></p>
+  <p>Email: {{ current_user.email }} (only you can see this)</p>
+
+  {% if current_user.is_demo %}
+    <p>This is a shared demo account, so its password can't be changed and it can't be deleted.</p>
+  {% else %}
+    <h2>Password</h2>
+    <p>
+      {% if current_user.password_hash %}
+        You can log in with your password or an email link. If you forgot your password, this is where you set a new one.
+      {% else %}
+        You log in with email links. Set a password if you'd also like to log in with one.
+      {% endif %}
+    </p>
+    <form method="post" action="{{ url_for('auth.set_password') }}">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      <label>
+        New password
+        <input type="password" name="password" minlength="{{ min_password_length }}" autocomplete="new-password" required>
+      </label>
+      <button>Save password</button>
+    </form>
+
+    <h2>Delete account</h2>
+    <p>This permanently deletes your account, posts, comments and reactions.</p>
+    {{ post_button(url_for('auth.delete_account'), 'Delete my account', confirm='Permanently delete your account and everything you posted?') }}
+  {% endif %}
+{% endblock %}

@@ -220,9 +220,15 @@ def leave(slug):
 @bp.post("/categories/<slug>/restart")
 @login_required
 def restart(slug):
-    membership = my_memberships().get(get_category(slug).id)
+    category = get_category(slug)
+    membership = my_memberships().get(category.id)
     if membership:
         membership.started_on = date.today()
+        # Otherwise a tick from earlier today would still count as a day.
+        entry = todays_check_in()
+        if entry and category in entry.larped:
+            entry.larped.remove(category)
+            entry.on_track = False
         db.session.commit()
     return redirect(back(url_for("main.category_feed", slug=slug)))
 

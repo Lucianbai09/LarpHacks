@@ -59,7 +59,7 @@ Outside VS Code, run `.venv\Scripts\python.exe run.py`.
 - They're labelled "demo" everywhere, and marked `is_demo` in the database.
 - They can't join a real person's circle, comment on or react to real posts, or change their own password or delete themselves.
 - Seeding only ever adds demo rows, does nothing if they're already there, and refuses to run if a real account has one of their usernames.
-- `flask clear-demo` deletes demo accounts and everything attached to them, including real people's comments on demo posts. Real accounts, posts and circles stay.
+- `flask clear-demo` deletes demo accounts and everything attached to them, including real people's comments on demo posts. Real accounts, posts and circles stay. `flask reset-demo` does that and adds them back in one go.
 
 Real people can't register those usernames or an `@example.com` email.
 
@@ -155,12 +155,15 @@ Your pledge is visible to you and your circle, unless you turn that off. Achieve
 
 ## Deploy on Render
 
-Do this once the tables are final, because there are no migrations.
+The tables are final, and Render builds its database from `app/models.py` on the first start. Accounts on your computer don't move over, so make the ones you want on the live site.
 
-1. Push the repo to GitHub. `.env` stays out of git, so your local password doesn't go with it.
-2. In the Render dashboard, choose **New > Blueprint**, pick the repo, and apply it. Paste your email script URL and Turnstile keys when it asks. Without the email URL, confirmation and password reset emails don't send. Without the keys, the captcha is off. Everything else still works.
+1. Commit and push to GitHub. `.env` stays out of git, so your local password doesn't go with it.
+2. In the Render dashboard, choose **New > Blueprint**, pick the repo, and apply it. When it asks for values:
+   - `EMAIL_WEBHOOK_URL`: copy it from your `.env`. Without it, confirmation and password reset emails don't send.
+   - `TURNSTILE_SITE_KEY` and `TURNSTILE_SECRET_KEY`: use the public test keys from `.env.example` for now, because a real widget needs the site's address.
+3. Once it's live, add a free Turnstile widget in the [Cloudflare dashboard](https://dash.cloudflare.com/?to=/:account/turnstile) with the site's hostname, such as `larphacks.onrender.com`. Paste its keys into the service's **Environment** tab on Render, then save and deploy. Sign up once to check the captcha works. If it doesn't, put the test keys back so sign-ups keep working.
 
-`render.yaml` creates the site and its Postgres database, generates `SECRET_KEY`, and connects them. New tables and categories are added each time the site starts, and the demo accounts are wiped and re-seeded so their days stay current. `TZ` sets which time zone counts as "today", so change it if you're demoing outside Eastern time. Before real people use the site, remove `flask clear-demo && flask seed-demo` from `startCommand` and delete the demo accounts.
+`render.yaml` creates the site and its Postgres database, generates `SECRET_KEY`, and connects them. Every start, including waking from sleep, runs `flask reset-demo`, which adds new tables and categories and replaces the demo accounts with a fresh copy so their days stay current. Real accounts and their posts stay, but their comments and "I believe you"s on demo posts don't. `TZ` sets which time zone counts as "today", so change it if you're demoing outside Eastern time. Before real people use the site long term, change `startCommand` to `flask init-db && flask clear-demo && gunicorn run:app --timeout 120`, which removes the demo accounts.
 
 On the free plan:
 

@@ -338,6 +338,15 @@ def test_joining_counting_and_breaking_character(make_user, app, get_user):
     assert 'action="/categories/alcohol/join"' in browser.text("/categories/alcohol")
 
 
+def test_ticking_a_community_counts_today_until_you_break_character(make_user):
+    browser = make_user("alice")
+    browser.post("/categories/alcohol/join")
+    browser.post("/check-in", {**CHECK_IN, "larped": ["alcohol"]})
+    assert "1 day in character" in browser.text("/")
+    browser.post("/categories/alcohol/restart")
+    assert "0 days in character" in browser.text("/")
+
+
 def test_home_is_a_landing_page_until_you_log_in_and_medals_follow_the_count(make_user, visitor, app):
     assert "Sign up free" in visitor().text("/")
     browser = make_user("alice")

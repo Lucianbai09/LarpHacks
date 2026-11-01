@@ -39,15 +39,14 @@ The product is called Cove, while the repo, databases and Render service keep th
 - Aimed at Gen Z and younger millennials. Eight communities: Scrolling, Vaping, Gaming, Alcohol, Weed, Betting, Energy drinks and Impulse buying (`CATEGORIES` in `app/models.py`). More must stay easy to add.
 - **Tone:** casual and short. The larp theme shows up in a few chosen places only ("Let's larp" on sign-up, "days in character", "I broke character", the pledge). Don't sprinkle it everywhere.
 - **Logo:** `app/static/cove-logo.png`, recoloured to the site's orange (`--orange`). It's in the desktop nav, a slim bar on phones and the landing nav. `favicon.png` is its campfire badge.
-- **Pressing F5 runs `init_db()`,** so new tables and categories appear locally without running `flask init-db`. New demo posts still need `flask clear-demo` then `flask seed-demo`.
+- **Pressing F5 runs `init_db()`,** so new tables and categories appear locally without running `flask init-db`. New demo posts still need `flask reset-demo`.
 - Posts go into any number of communities, or into Overall on its own.
 - Real people can sign up and use it alongside walled-off demo data.
 
 ## 4. Current state
 
-- **Repo:** github.com/Lucianbai09/LarpHacks, branch `main`. Commit `a95f127` ("commit 4: ui + new features") is pushed.
-- **Check this first:** this handoff was written with everything after that commit still uncommitted, including badges, setup steps, the pledge, multi-community posts and the three-question check-in. If `app/badges.py` is missing, the user hasn't pushed yet, so ask them to commit and push from the original machine in GitHub Desktop.
-- **Not deployed.** Render comes last, once tables are final.
+- **Repo:** github.com/Lucianbai09/LarpHacks, branch `main`.
+- **Not deployed yet.** The tables are final as of 2026-11-01 and `render.yaml` is ready. The steps are under "Deploy on Render" in `README.md`.
 - **Git doesn't carry these:**
   - `.env`, with keys `DATABASE_URL`, `TEST_DATABASE_URL`, `SECRET_KEY`, `EMAIL_WEBHOOK_URL`, `TURNSTILE_SITE_KEY`, `TURNSTILE_SECRET_KEY`. On a new device, copy `.env.example`, then copy `EMAIL_WEBHOOK_URL` over by hand or email won't send. The README explains the rest.
   - The local databases. A new device only gets demo data. The user's real account stays on the original machine.
@@ -55,7 +54,7 @@ The product is called Cove, while the repo, databases and Render service keep th
   - `.venv`, which the README's setup recreates.
 - **Running it:** F5 in VS Code runs `run.py` and opens http://127.0.0.1:5000. Saving code or `.env` restarts it. Use Ctrl+F5 for live demos. If the site hangs after an error, press the red square, then F5.
 - **Databases (local Postgres 18):** `larphacks` is the real one, and `larphacks_test` gets wiped by the tests.
-- **Original machine's data:** `larphacks` holds 1 real account (1 post, 2 communities, 1 check-in, 1 "I believe you" on a demo post) plus the demo data.
+- **Original machine's data:** `larphacks` holds 3 real accounts (3 posts, 2 check-ins, 2 circle links) plus the demo data.
 - **That machine also has a placeholder global `DATABASE_URL`.** `load_dotenv(override=True)` in `create_app` makes `.env` win.
 
 **Before changing a table:** there are no migrations, and `flask init-db` only creates missing tables. Check for rows where `is_demo` is false. If any exist, change the table in place with `ALTER TABLE` from a throwaway script. Only rebuild a database that holds nothing but demo data.
@@ -88,7 +87,7 @@ The product is called Cove, while the repo, databases and Render service keep th
 | Path | What's there |
 | --- | --- |
 | `run.py` | Starts the site, and is what gunicorn loads |
-| `app/__init__.py` | App factory, config, `flask init-db`, `seed-demo`, `clear-demo` |
+| `app/__init__.py` | App factory, config, `flask init-db`, `seed-demo`, `clear-demo`, `reset-demo` |
 | `app/models.py` | Tables, `CATEGORIES`, `MILESTONES`, `MOODS`, and `visible_to()` |
 | `app/views.py` | Feeds, write, check-in, progress, posts, communities, profiles, pledge, setup, circles |
 | `app/auth.py` | Register, login, email confirmation, password reset, account page |
@@ -132,7 +131,7 @@ The product is called Cove, while the repo, databases and Render service keep th
 
 **Profiles:** your own shows your communities, counts, pledge, badges, entries, comments and believed posts. Other people's show only the posts you may see, and communities and counts only show to their circle.
 
-**Pledge:** editable on your profile. It starts as a sentence built from your communities, such as "I'm someone who doesn't need a drink or game on autopilot."
+**Pledge:** editable on your profile. It starts as a sentence built from your communities, such as "I'm someone who doesn't game on autopilot or need a drink."
 
 **Badges:** First step, Honest day, Comeback, Perfect week, Many fronts, Open book, Cheerleader, Partnered up, Storyteller, Circle of three. Earning one shows a "New badge" message.
 
@@ -153,6 +152,8 @@ Don't undo these without asking.
 - **Setup step 3 preselects My circle,** as in the design, and that becomes the starting audience for check-ins and posts. Without setup, check-ins start on Only me and posts on My circle.
 - **Email links never show on the page,** even locally. The user removed this once real email worked.
 - **The Cloudflare widget is hidden** (`data-appearance="interaction-only"`) unless Cloudflare wants a click. This removes the "For testing only" text the test keys show.
+- **Local accounts aren't moved to Render.** The hosted database starts with only the demo accounts, and the user makes theirs on the live site. Local ones were all made the same day and day counts can't be backdated, so nothing is lost.
+- **Render re-seeds the demo data on every start,** including each wake from sleep, so days stay current and `maya`'s check-in is open again. Real accounts stay, but their comments and "I believe you"s on demo posts don't.
 
 ## 9. Demo
 
@@ -166,7 +167,9 @@ All demo accounts use the password `larping123`.
 | `jonas`, `priya` | A second circle. `priya` has a photo reflection |
 | `lena` | Has a circle request waiting on `theo` |
 
-The demo accounts are walled off because their password is public. They can't join real circles, write on real posts, or be changed or deleted, and real people can't register their usernames or an `@example.com` email. `flask clear-demo` then `flask seed-demo` refreshes them, and clearing also removes real people's comments on demo posts.
+Every community has at least two demo members and three public posts.
+
+The demo accounts are walled off because their password is public. They can't join real circles, write on real posts, or be changed or deleted, and real people can't register their usernames or an `@example.com` email. `flask reset-demo` refreshes them, which also removes real people's comments on demo posts.
 
 **Suggested flow:**
 1. Ctrl+F5, then show the landing page and feed logged out.
@@ -190,7 +193,7 @@ Follow the "Adding a feature" checklist in `SECURITY.md` for anything new.
 
 ## 11. What's proven and what isn't
 
-**Tests:** 147 pass: 121 across accounts, privacy and security, plus 26 for demo data. That last run of the three big files took 11 minutes, while the whole suite took about 100 seconds at 139 tests. Nobody has looked into why.
+**Tests:** 149 pass, and the whole suite takes about 2 minutes. The GitHub checks passed on `6203355`, including starting the site with gunicorn on Linux.
 
 **Checked in a real (headless) browser:**
 - "I believe you" not moving the page
@@ -204,18 +207,18 @@ Follow the "Adding a feature" checklist in `SECURITY.md` for anything new.
 **Not proven yet:**
 - Cloudflare with real keys. The test keys let everyone through, so the captcha isn't stopping any bots yet.
 - The setup and pledge forms and the photo picker with a real mouse. The forms have automated tests only.
-- The Render deploy, gunicorn in production, and rate limits behind Render's proxy.
-- The GitHub checks. This machine has no `gh`, so their results weren't looked at. Look at the Actions tab on GitHub.
+- The Render deploy itself. A stand-in with Render's settings passed: the start command on an empty database, every community page, and login behind proxied HTTPS.
+- Rate limits behind Render's proxy. On Render they now use `CF-Connecting-IP`, as Render's docs advise, because otherwise everyone looks like the same proxy. Not checked live.
 
 ## 12. What's left
 
 1. Commit and push (the user does this).
 2. Trim the tests to about 50 by shrinking parametrized cases and removing overlap. Keep the login and CSRF route scans, the code scans, the audience checks, the demo wall and seed isolation, reset links working once, and the captcha failing closed.
 3. Build more from the prototype if there's time. Still unbuilt: accountability partner and nudge, suggested people, notifications, saved report frequency, story carousel, larger-text setting. Their CSS was left out of `style.css`, so get `LARP-prototype.html` from the user first.
-4. Rehearse the demo and confirm tables are final.
+4. Rehearse the demo.
 5. Deploy to Render, last:
    - Push, then in Render choose New > Blueprint.
-   - Paste `EMAIL_WEBHOOK_URL` and real Turnstile keys. Those are a free widget in the Cloudflare dashboard, set up with the Render hostname.
+   - Paste `EMAIL_WEBHOOK_URL` and the test Turnstile keys from `.env.example`. Once the site's address is known, make a free widget in the Cloudflare dashboard with that hostname and swap in its real keys.
    - Email links use the address Render provides (`RENDER_EXTERNAL_URL`), so there's nothing to set for those.
    - Render's free plan sleeps after 15 minutes and takes about a minute to wake, so open the site before presenting.
    - The free database expires 30 days after it's created and has no backups, so create it close to the hackathon.

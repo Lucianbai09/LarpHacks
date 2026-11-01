@@ -146,7 +146,9 @@ class Membership(db.Model):
 
     @property
     def days(self):
-        return (date.today() - self.started_on).days
+        # Today counts once they've checked in and ticked this community.
+        today = db.session.get(CheckIn, (self.user_id, date.today()))
+        return (date.today() - self.started_on).days + bool(today and self.category in today.larped)
 
     @property
     def days_label(self):
